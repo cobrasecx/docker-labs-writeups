@@ -5,6 +5,14 @@
 Antes que nada, en mi caso, decidí mapear el puerto 80 del contenedor de Docker al 9090 del
 host para así poder acceder a la web-app gráficamente, sin mayores complicaciones:  
 
+```
+unzip -l <archivo.zip>
+unzip <archivo.zip>
+rm -f <autoscript.sh>
+sudo docker load -i <archivo.tar>
+sudo docker run --rm -p 9090:80 <imagen>
+```
+
 [IMG]
 
 La IP del contenedor de Candy es 172.18.0.2.  
