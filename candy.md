@@ -2,7 +2,7 @@
 
 > Dificultad: Fácil
 
-Luego de descargar el ZIP, revisé el contenido y lo descomprimí en la carpeta actual. Borré el script automático, cargué la imagen del TAR con Docker. Lanzé el contenedor mapeando el puerto 80 al 9090 del hoste para así poder acceder a la web-app gráficamente desde el navegador, sin mayores complicaciones:  
+Luego de descargar el ZIP, revisé el contenido y lo descomprimí en la carpeta actual. Borré el script automático para carguar la imagen del TAR con Docker, manualmente. Lanzé el contenedor mapeando el puerto 80 al 9090 del host para así poder acceder a la web-app gráficamente desde el navegador, sin mayores complicaciones:  
 
 ```
 unzip -l <archivo.zip>
