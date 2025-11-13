@@ -13,6 +13,8 @@ Por otro lado, tengo otro contenedor Kali atacante preparado con IP 172.18.0.3:
 
 [IMG]    
 
+___
+
 ### FASE RECOPILACIÓN / ENUMERACIÓN:
 Con nmap descubrimos que hay un solo puerto habilitado escuchando con servicio: el 80,
 una web app.  
@@ -21,29 +23,32 @@ En la sub-fase de Enumeracion Web, una de las cosas más básicas es buscar por 
 bots/agentes (navegadores, etc):  
 
 En http://localhost:9090/robots.txt vemos entre otras líneas:  
-* Disallow: /un_caramelo admin:c2FubHVpczEyMzQ1  
+* Disallow: /un_caramelo `admin:c2FubHVpczEyMzQ1`  
 
 Parecieran ser las credenciales de admin de la app.  
+
+___
 
 #### FASE EXPLOTACIÓN (Ganar Acceso):
 La password aparenta estar en formato base64, por lo tanto hay que descodificarla. He aquí
 dos maneras:
-> 1. Consultando a alguna IA
-> 2.  echo “c2FubHVpczEyMzQ1” | base64 -d
+>    1. Consultando a alguna IA
+>    2.  echo “c2FubHVpczEyMzQ1” | base64 -d
 
 [IMG]
 
-Queda “admin:sanluis12345”
-Las probamos y tenemos acceso:  
+Queda `admin:sanluis12345`. Las probamos y tenemos acceso.  
 
 [IMG]  
 
-#### FASE POST-EXPLOTACIÓN:
-Revisando un poco, vamos haciendo fingerprinting de los activos. La mayoría de los datos son irrelevantes para la escalada de privilegios:  
+___
 
-> grupo = 'Super Users'
-> email = realmail@dockerlabs.com
-> ID = 615
+#### FASE POST-EXPLOTACIÓN (Escalar Privilegios):
+Revisando un poco, vamos haciendo fingerprinting de los activos. La mayoría de los datos son irrelevantes para la escalada:  
+
+>    grupo = 'Super Users'
+>    email = realmail@dockerlabs.com
+>    ID = 615
   
 Luego, encontramos que la versión de Joomla es 4.1.1 con un Manifest Data de 4.1.2. Esto podría ser un vector relevante. Podríamos buscar un exploit, por ejemplo con la herramienta searchsploit, en GitHub, etc.  
 
@@ -160,5 +165,3 @@ Vemos que no hay problema e intentamos:
     `Password --> 1234`    
 
 Logrado: somos root.
-
-  
