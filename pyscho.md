@@ -41,4 +41,5 @@ Una de las primeras cosas que debemos hacer cuando ya tenemos un pie adentro es 
 
 `sudo -l`  
 
-El resultado nos dice que podemos usar `perl` como `luisillo` para Elevar Privilegios. Vamos a la web https://gtfobins.github.io/ y encontramos que corriendo: `sudo -u luisillo perl -e 'exec "/bin/bash";'` conseguimos root. Eso es todo.
+El resultado nos dice que podemos usar `perl` como `luisillo` para convertirmos en él. Vamos a la web https://gtfobins.github.io/ y encontramos que corriendo: `sudo -u luisillo perl -e 'exec "/bin/bash";'`. Somos `luisillo`.  
+
