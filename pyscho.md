@@ -37,11 +37,8 @@ Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos
 
 #### FASE POST-EXPLOTACIÓN (Escalar Privilegios):  
 
-Una de las primeras cosas que debemos hacer cuando ya tenemos un pie adentro es ver los **privilegios sudo**:  
+Una de las primeras cosas que debemos hacer cuando ya tenemos un pie adentro es ver los **Privilegios Sudo**:  
 
-`sudo -l` ==>  `sudo -u luisillo perl -e 'exec "/bin/bash";'`  
+`sudo -l`  
 
-
-
-
-
+El resultado nos dice que podemos usar `perl` como `luisillo` para Elevar Privilegios. Vamos a la web https://gtfobins.github.io/ y encontramos que corriendo: `sudo -u luisillo perl -e 'exec "/bin/bash";'` conseguimos root. Eso es todo.
