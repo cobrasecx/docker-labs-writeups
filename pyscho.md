@@ -21,6 +21,8 @@ Después de mucha búsqueda, parece que `index.php` es lo más relevante. Entonc
 
 Encontramos a `secret`.  
 
+___
+
 #### FASE EXPLOTACIÓN (Ganar Acceso):  
 
 Bien, probando y probando, encontramos que podemos intentar un LFI en dicho parámetro. Queda:  
@@ -37,6 +39,8 @@ Bien, de la misma manera que leimos `/etc/passwd` podemos seguir buscando otros 
 El mismo trata de la **Clave Privada** del usuario `vaxei`, por lo cual ya podemos tener **footholding** quizás.  
 
 Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos `whoami` y confirmamos acceso.  
+
+___
 
 #### FASE POST-EXPLOTACIÓN (Escalar Privilegios):  
 
