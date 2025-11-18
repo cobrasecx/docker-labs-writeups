@@ -17,7 +17,7 @@ Primero, **Escaneamos** el objetivo en busca de puertos, servicios y versiones u
 
 Después de mucha búsqueda, parece que `index.php` es lo más relevante. Entonces, dado que no hay más, proseguimos a **Buscar Vulnerabilidades** fuzzeando, en este caso, *Parámetros URL* en dicho recurso. Usamos `wfuzz` nuevamente:  
  
- `wfuzz -c --hc 404 -t 200 -z file,rockyou.txt -u "http://<IP>/index.html?FUZZ=1"`  
+ `wfuzz -c --hc 404 -t 200 -z file,rockyou.txt -u "http://<IP>/index.php?FUZZ=1"`  
 
 Encontramos a `secret`.  
 
@@ -40,16 +40,14 @@ Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos
 
 #### FASE POST-EXPLOTACIÓN (Escalar Privilegios):  
 
-Una de las primeras cosas que debemos hacer cuando ya tenemos un pie dentro es ver los **Privilegios Sudo**:  
+Una de las primeras cosas que debemos hacer cuando ya tenemos un pie dentro es ver los **Privilegios Sudo** con `sudo -l`.  
 
-`sudo -l`  
+El resultado nos mustra que podemos usar `/usr/bin/perl` como `luisillo` para convertirnos en él. Vamos a la web https://gtfobins.github.io/ y terminamos corriendo `sudo -u luisillo /usr/bin/perl -e 'exec "/bin/bash";'` como `vaxei`.  
+Enseguida `whoami` y verificamos que somos `luisillo`.  
 
-El resultado nos mustra que podemos usar `/usr/bin/perl` como `luisillo` para convertirnos en él. Vamos a la web https://gtfobins.github.io/ y concluimos corriendo `sudo -u luisillo /usr/bin/perl -e 'exec "/bin/bash";'` como `vaxei`.  
-Enseguida `whoami` y somos `luisillo`.  
+Chequeando los **Privilegios Sudo** con este usuario, lanzando `sudo -l`, vemos que tenemos sobre un script en particular usando Python3:  `/usr/bin/python3 /opt/paw.py`  
 
-Chequeando los **Privilegios Sudo** con este usuario lanzando `sudo -l`, vemos que tenemos sobre un script en particular usando Python3:  `/usr/bin/python3 /opt/paw.py`  
-
-Al ejecutar `sudo /usr/bin/python3 /opt/paw.py` vemos que lanza un error al no encontrar la librería `/usr/lib/python3.12/subprocess.py`. Gracias a este, nos damos cuenta que podemos crear nuestro propio sub-script python malicioso para ser llamado por el principal. Es script llama, por defecto, a su propio nivel al principio, es decir en el directorio que lo contiene, y luego la ubicación por default.  
+Al ejecutar `sudo /usr/bin/python3 /opt/paw.py` vemos que muestra un error al no encontrar la librería `/usr/lib/python3.12/subprocess.py` de la cual depende. Gracias a esto, nos damos cuenta que podemos crear nuestro propio python sub-script malicioso para ser llamado por `/opt/paw.py`. El script llama, por defecto, en su propio nivel al correr, es decir en el directorio que lo contiene.
 
 Con esto en mente, nos movemos a `/opt/` y creamos un `subprocess.py` malicioso en `/opt` con:    
 
@@ -63,6 +61,6 @@ Con esto en mente, nos movemos a `/opt/` y creamos un `subprocess.py` malicioso 
 
 Le damos permisos de ejecutable con `chmod +x subprocess.py`. 
 
-Este script malicioso le da permisos SUID a `/bin/bash` en caso de ser root y, como tenemos permisos sudo con `/usr/bin/python3 /opt/paw.py`, tendríamos éxito.  
+Este `/opt/subprocess.py` malicioso le da permisos SUID a `/bin/bash` en caso de ser root y, como tenemos permisos sudo con `/usr/bin/python3 /opt/paw.py`, tendríamos éxito.  
 
-Lanzamos entonces `sudo /usr/bin/python3 /opt/paw.py`, nos muestra un error sin importancia, corremos `bash -p` y somos root. Eso es todo.
+Lanzamos, entonces, `sudo /usr/bin/python3 /opt/paw.py`, nos muestra un error sin importancia, corremos `bash -p` y somos root. Eso es todo.
