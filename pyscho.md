@@ -5,7 +5,7 @@ ___
 
 #### FASE RECOPILACIÓN:  
 
-Primero, **Escaneamos** el objetos en busca de puertos, servicios y versiones usando `nmap`:  
+Primero, **Escaneamos** el objetivo en busca de puertos, servicios y versiones usando `nmap`:  
 
  `nmap -n -v -sV -sC --min-rate 5000 <IP>`  
 
