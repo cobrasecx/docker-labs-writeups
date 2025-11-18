@@ -5,17 +5,17 @@ ___
 
 #### FASE RECOPILACIÓN:  
 
-Primero, Escaneamos puertos, servicios y versiones del objetivo con `nmap`:  
+Primero, **Escaneamos** el objetos en busca de puertos, servicios y versiones usando `nmap`:  
 
  `nmap -n -v -sV -sC --min-rate 5000 <IP>`  
 
 [IMG]  
 
- Vemos que está abierto el puerto 80, el cual habla de una web-app. Una vez aclarado esto, proseguimos con una Enumeración Web usando, en este caso, `wfuzz`:  
+ Vemos que está abierto el puerto 80, el cual habla de una web-app. Una vez aclarado esto, proseguimos con una **Enumeración Web** usando, en este caso, `wfuzz`:  
 
  `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -u "http://<IP>/FUZZ"`  
 
- Los más importante que aparece es el `index.php`. Entonces, dado que no hay más, proseguimos a **Buscar Vulnerabilidades** fuzzeando Parámetros URL en dicho recurso. Usamos `wfuzz` nuevamente:  
+Después de mucha búsqueda, parece que `index.php` es lo más relevante. Entonces, dado que no hay más, proseguimos a **Buscar Vulnerabilidades** fuzzeando, en este caso, *Parámetros URL* en dicho recurso. Usamos `wfuzz` nuevamente:  
  
  `wfuzz -c --hc 404 -t 200 -z file,rockyou.txt -u "http://<IP>/index.html?FUZZ=1"`  
 
@@ -25,7 +25,7 @@ Encontramos a `secret`.
 
 Bien, probando y probando, encontramos que podemos intentar un LFI en dicho parámetro. Queda:  
 
-`wfuzz -c --hc 404 -t 200 -z list,"../../../../../etc/passwd" -u http://<IP>/index.php?secret=FUZZ"`  
+`wfuzz -c --hc 404 -t 200 -z list,"../../../../../etc/passwd" -u "http://<IP>/index.php?secret=FUZZ"`  
 
 o directamente en el navegador:  
 
@@ -33,10 +33,10 @@ o directamente en el navegador:
 
 Bien, conseguimos leer el archivo `/etc/passwd` con lo cual ya podemos **Enumerar Usuarios** y encontramos a `luisillo`, `ubuntu` y `vaxei`.  
 
-Bien, de la misma manera que leimos `/etc/passwd` podemos seguir buscando otros ficheros importantes del sistema. Después de mucho intentar encontramos a `http://<IP>/index.php?secret=../../../../../../../home/vaxei/.ssh/id_rsa`.  
+Bien, de la misma manera que leimos `/etc/passwd` podemos seguir buscando otros ficheros importantes del sistema. Después de mucho intentar, hayamos a `http://<IP>/index.php?secret=../../../../../../../home/vaxei/.ssh/id_rsa`.  
 El mismo trata de la **Clave Privada** del usuario `vaxei`, por lo cual ya podemos tener **footholding** quizás.  
 
-Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos `whoami` y confirmamos el acceso.  
+Copiamos dicha clave localmente e intentamos `ssh -i id_rsa vaxei@<IP>`. Hacemos `whoami` y confirmamos acceso.  
 
 #### FASE POST-EXPLOTACIÓN (Escalar Privilegios):  
 
