@@ -83,9 +83,17 @@ Lo segundo es Buscar Credenciales en el sistema. Podemos hacerlo con:
 
 * `grep -RIin password / 2>/dev/null`
 * `find / -type f -iname "password" 2>/dev/null | xargs ls -l`
+* `grep -RIin -E "fernando|mario|julen|iker / 2>/dev/null`
 
 > También podemos correr LinPEAS desde Penélope haciendo:
 > `modules` ==> `run peass_ng`
 
+> Además debemos buscar Binarios SUID y Privilegios Sudo para ver si podemos Escalar Privilegios desde www-data, por si acaso:
+> * `find / -type f -perm -4000 2>/dev/null | xargs ls -l`
+> * `sudo -l`
 
+Una vez que nos damos cuenta que no conseguimos nada fácilmente, pasamos a crear un script para crackear usuarios mediante un Ataque de Diccionario. Yo usé el mío [aquí](https://github.com/cobrasecx/bruters/blob/main/bruter.sh). Probando varios diccionarios, conseguimos resultados finalmente: `fernando:chocolate`.  
 
+> El diccionario ganador fue `/usr/share/seclists/Passwords/Common-Credentials/best110.txt`
+
+Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos Movimiento Lateral. Ahora, como `fernando` vemos que no tenemos Permisos Sudo corriendo  `sudo -l` ni Binarios SUID relevantes en el sistema.  
