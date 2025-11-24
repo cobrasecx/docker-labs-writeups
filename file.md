@@ -96,4 +96,6 @@ Una vez que nos damos cuenta que no conseguimos nada fácilmente, pasamos a crea
 
 > El diccionario ganador fue `/usr/share/seclists/Passwords/Common-Credentials/best110.txt`
 
-Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos Movimiento Lateral. Ahora, como `fernando` vemos que no tenemos Permisos Sudo corriendo  `sudo -l` ni Binarios SUID relevantes en el sistema.  
+Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos Movimiento Lateral. Ahora, como `fernando` vemos que no tenemos Permisos Sudo corriendo (`sudo -l`) ni Binarios SUID relevantes en el sistema.  
+
+Ya habiendo probado algunas cosas, vemos que listando nuestro /home/fernando vemos un archivo de imagen llamado `dragon-medieval.jpeg` 
