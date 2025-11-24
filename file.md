@@ -7,7 +7,8 @@ ___
 #### FASE ENUMERACIÓN  
 
 Primero hacemos un Escaneo de Objetivo. Para ello, usamos nmap:  
-`nmap -v -n --open -sV -sC --min-rate 5000 <IP> -oN escaneo`  
+
+`nmap -v -n --open -sV -sC --min-rate 5000 -oN escaneo <IP>`  
 
 Vemos que el puerto 80 y 21 están abiertos. Vamos a Enumerar ambos servicios.  
 
@@ -19,13 +20,34 @@ Entonces ahora, vamos a la página https://crackstation.net/, ingresamos nuestro
 
 Ahora Enumeremos el servicio Web:  
 
+Primero los Directorios. Usamos `wfuzz`:  
 
+ `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -R 3 -u "http://<IP>/FUZZ"`  
 
+ Obtenemos uno solo de relevacia:
+ 
+ * /uploads  
 
+Ahora, los Recursos. En este caso, buscamos PHP, HTML y TXT:  
+
+`wfuzz -c --hc 404 -t 200 -z list,"php-html-txt" -u "http://<IP>/FUZZ"`  
+
+Encontramos 3:  
+
+* /file_upload.php
+* /subir_archivos.php
+* /index.html
 
 ___
 
-#### FASE EXPLOTACIÓN  
+#### FASE EXPLOTACIÓN (Ganar Acesso):  
+
+Una vez Enumerados todos los Servicios. Pasamos a intentar Ganar Acceso. Pareciera que el camino para lograrlo es intentar subir un archivo malicioso de alguna manera y, probando y probando, no lo conseguimos. Por lo tanto, pasamos a descargar los recursos PHP que son los que tienen la lógica de dicha función. Lo hacemos de la siguiente manera:  
+
+* curl -O http://<IP>/file_upload.php
+* curl -O http://<IP>/subir_archivo.php
+
+
 ___
 
 #### FASE POST-EXPLOTACIÓN
