@@ -88,7 +88,7 @@ Ahora podemos notar que los usuarios son 4:
 3. julen
 4. iker
 
-> Todos usan el intérprete de Bash (incluso www-data)  
+> Todos usan el intérprete de Bash (incluso www-data, por eso funcionó el payload)  
 
 Lo segundo es **Buscar Credenciales en el Sistema**. Podemos hacerlo con:  
 
