@@ -40,7 +40,7 @@ Ahora, prodríamos correr también `whatweb`: `whatweb <IP>` para Footprinting.
 ```
 
 2.2 Ahora proseguimos con los Recursos (PHP-HTML-TXT):  
-`wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt`  
+`wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt -u "http://<IP>/FUZZ.FUZ2Z"`  
 
 ```
 - /index.php       
