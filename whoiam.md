@@ -6,16 +6,25 @@ ___
 
 #### FASE RECONOCIMIENTO:
 
-1. Escaneo:  
-Usaremos `nmap -n -v --open -sV -sV -oN escaneo <IP>`.  
-Del mismo obtenemos que únicamente el puerto 80 tiene un servicio. por lo tanto se trata de una Web-App y que la versión es Apache 2.4.58 y que el sistema host en un sistema Ubuntu.
+1. **Escaneo**:
 
-Ahora, corremos también `whatweb`: `whatweb <IP>` para Footprinting Web. Vemos que además, tiene JQuery 3.7.1. Podría sernos útil.  
+Usaremos `nmap -n -v --open -sV -sC -Pm -oN escaneo <IP>`.  
 
+Del mismo obtenemos:  
+* el puerto 80 está abierto
+* la versión es Apache 2.4.58
+* que el sistema objetivo es un Ubuntu
 
-2. Enumeración Web:  
+Ahora, procedemos con `whatweb <IP>` para más **Footprinting Web**. Vemos que también tiene *JQuery 3.7.1*. Podría sernos útil más adelante.  
 
-2.1. Empezamos con los Directorios, usando, por ejemplo, `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -R 3 -u "http://<IP>/FUZZ"` encontramos:  
+2. **Enumeración Web**:  
+
+2.1. Empezamos con los **Directorios**, usando, por ejemplo:  
+
+`wfuzz -c --hc 404 -t 200 -z file,<diccionario> -R 3 -u "http://<IP>/FUZZ"`  
+
+Encontramos:  
+
 ```
 - /backups/		
 - /wp-includes/
@@ -39,7 +48,8 @@ Ahora, corremos también `whatweb`: `whatweb <IP>` para Footprinting Web. Vemos 
 - /wp-includes/js    
 ```
 
-2.2 Ahora proseguimos con los Recursos (PHP-HTML-TXT):  
+2.2 Ahora proseguimos con los **Recursos** (*PHP-HTML-TXT*):  
+
 `wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt -u "http://<IP>/FUZZ.FUZ2Z"`  
 
 ```
@@ -53,36 +63,43 @@ Ahora, corremos también `whatweb`: `whatweb <IP>` para Footprinting Web. Vemos 
 - /wp-admin/media-new.php
 ```
 
-
-
 3. Búsqueda de Vulnerabilidades:
+No parecen haber vulnerabilidades por el momento.
 
-
+___
 
 #### FASE EXPLOTACIÓN:
-Web:  
-De estas enumeración, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos y primero revisamos localmente sin extraer para estar seguros. Lo hacemos con `unzip -l <zip>`. Vemoos muestra un único archivito llamado `29DBMay`. Ahora sí, procedemos a extraerlo con `unzip <zip>` le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`. Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y la web vemos que no se trata de una hash válido ni base64, entonces probablemente se trata de un texto claro.  
+**Web**:  
+De dichas enumeraciónes, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos.
+Primero revisamos localmente, sin extraer para estar seguros, con `unzip -l <zip>`. Vemos que contiene un único archivito llamado `29DBMay`.  
+Ahora procedemos a extraerlo con `unzip <zip>`. Le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`.  
+Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y en la web, vemos que no se trata de una hash válido ni base64, entonces probablemente sea la password, en texto claro.  
 
 Entonces, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php` y logramos **Footholding Web**.  
 
-Sistema:  
-Navegando por el dashboard encontramos un endpoint interesante por el cual podríamos pobrar subir una WebShell para lograr acceso inicial al sistema. Este recurso es `/wp-admin/media-new.php`. Al intentar subir algún archivo nos damos cuenta que no es posible porque no tenemos los permisos como `developer`.  
+**Sistema**:  
+Navegando por el dashboard encontramos otro endpoint interesante, por el cual podríamos pobrar subir una *WebShell* y así lograr **Acceso Inicial al Sistema**. Este recurso es `/wp-admin/media-new.php`. Al intentar subir algún archivo nos damos cuenta que no es posible, porque no tenemos los permisos como `developer`.  
 
-Entonces, probamos hacer un poco de Footprinting de la WebApp. Encontramos que la versión de WordPress es 6.8.3, que tiene algunos Plugins instalados como:
-* Askimet 5.3.2
-* Modern Events Calendar Lite 5.16.2
+Entonces, probamos hacer más **Footprinting Web**. Encontramos que: 
 
-Además tiene Temas como:  
-*  Twenty Twenty-Four 1.1
-*  Twenty Twenty-Three 1.4
-*  Twenty Twenty-Two 1.7
+* Se trata de un WordPress 6.8.3
+* Hay *Plugins* instalados como:
+	* Askimet 5.3.2
+	* Modern Events Calendar Lite 5.16.2
+
+* Tiene *Temas* como:  
+	*  Twenty Twenty-Four 1.1
+	*  Twenty Twenty-Three 1.4
+	*  Twenty Twenty-Two 1.7
 			
-Encontramos otro usuario admin llamado `eric`.  
+* Hay otro usuario *admin* llamado `eric`.  
 
-Usamos la herramienta `searchsploit` buscando exploits para todo lo hallado anteriormente. Después de algún tiempo, encontramos uno directo para RCE para el Plugin Modern Events Calendar Lite 5.16.2 de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
+Entones usamos la herramienta `searchsploit` para buscar **Exploits**. Después de algún tiempo, encontramos uno directo para RCE, para el **Plugin Modern Events Calendar Lite 5.16.2** de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
 
-Siguiendo las instrucciones del exploit, lo lanzamos, nos da la URI de la webshell (http://<IP_Whoiam>/wp-content/uploads/shell.php), nos dirigimos allí y nos da una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en el navegador de una manera limitada y nos da un FootHolding básico al sistema.  
+Siguiendo las instrucciones del mismo, nos termina dando la URL de la webshell que acaba de subir:  
+`http://<IP_Whoiam>/wp-content/uploads/shell.php)`  
 
+Nos dirigimos allí en el navegador y nos abre una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en propio browser. Es bastante limitada, pero nos da un **FootHolding en el Sistema**.  
 
 Entonces, hacemos rápidamente un `whoami` y nos devuelve `www-data`. Dicho esto, nos apuramos a lanzar una Reverse Shell para tener más control localmente. Para ello, preparamos un listener. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda escuchando. 
 
