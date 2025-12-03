@@ -164,18 +164,21 @@ else
 fi
 ```
 
-> El script espera una entrada de texto en crudo (no interpreta los caracteres de escape como *\n*, etc), la parsea a entero comparándola con *42*. Si es igual devuelve "Correct", si no, "Wrong".  
+> El script espera una entrada de texto en crudo (no interpreta los caracteres de escape como *\n*, */r*, etc). La parsea a entero en el **Bloque If**, comparándola con *42*. Si es igual devuelve "Correct", si no, "Wrong".  
 
-Entonces, en este punto, hay que estar pensando en que la solución podría estar en una **Inyección de Comandos por Expansión de Shell**. Significa que puedo pasarle un comando del sistema que pueda permitirme **Elevar Privilegios**.  
+Entonces, en este punto, hay que estar pensando en que la solución podría yacer en una **Inyección de Comandos por Expansión de Shell**.  
 
-Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh`, me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42, por ejemplo.  
+> Significa que puedo pasarle un *Comando del Sistema* insidioso para **Elevar Privilegios**.  
 
-> El `Bloque IF` intenta parsear la entrada a entero para poder compararla con 42 como dijimos. En este proceso, al querer acceder al valor del índice 0 del array, ejecuta la **Expansión de Comandos $(...)**. La orden maliciosa termina, efectivamente, corriendo con privilegios de root. Entonces, esto concluye dándole el **Permiso SUID** a */bin/bash*, lo cual es extremadamente peligroso.  
+Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh`, me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42`, por ejemplo.  
 
->  Como el Array ingresado se termina parseando a 0 en el bloque condicional de `if`, puesto que el primer dígito es un caracter, el +42 tiene la función de no dar errores y el script se ejecute normalmente (no hace falta, es un adorno).
+> Al querer interpretar el *Array* como un entero, ejecuta la **Expansión de Comandos $(...)** antes de delvolver *0* (por hallar el caracter *'a'* al inicio)y compararse con *42*.  
 
-Ahora hacemos `whoami` y somos `root`. Eso es todo.
+> La orden maliciosa termina corriendo con Privilegios Elevados, dándole el **Permiso SUID** a */bin/bash*, lo cual es extremadamente peligroso.  
 
+>  El *+42* es para que el script no dé errores, se ejecute normalmente. No es necesario. Tiene una finalidad estética.  
+
+Ahora corremos `bash -p`, `whoami` y verificamos que somos `root`. Eso es todo.
 
 
 #### MITIGACIONES:  
