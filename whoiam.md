@@ -185,6 +185,7 @@ Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh`, me l
 
 Ahora corremos `bash -p`, `whoami` y verificamos que somos `root`. Eso es todo.
 
+___
 
 #### MITIGACIONES:  
 * Tener el sistema siempre actualizado
