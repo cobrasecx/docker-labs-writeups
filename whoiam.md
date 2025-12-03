@@ -94,29 +94,44 @@ Lanzamos `whoami` y somos `www-data`.
 
 #### FASE POST-EXPLOTACIÓN: Elevar Privilegios
 
-Ahora sí, es turno de Enumerar Usuarios. Lo hacemos de la siguientes maneras:  
+Ahora sí, una vez que tenemos **FootHolding** es turno de **Enumerar Usuarios**. Lo hacemos de las siguientes maneras:  
 
 * cat /etc/passwd
 * ls -l /home/
 
 Conseguimos 2 usuarios relevantes:  
+
 1. rafa
 2. ruben
 
-Ambos usan /bin/bash.  
+> Ambos usan /bin/bash.  
 
-Bien, lo segundo que debemos hacer es Buscar Binarios SUID y Privilegios Sudo. El primero lo conseguimos corriendo `find / -type f -perm -4000 2>/dev/null | xargs ls -l`. Esto no nos da ninguno que se aprecie.  
-Entonces probamos el siguiente con `sudo -l`. Nos devuelve:  
-`(rafa) NOPASSWD: /usr/bin/find`.  
-Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Encontramos que correiendo `sudo -u rafa find . -exec /bin/bash \; -quit` hacemos **Movimiento Lateral** al usuario `rafa`. Lo hacemos y ya somos `rafa`.  
+Bien, ahora, lo que debemos hacer es buscar **Binarios SUID** y **Privilegios Sudo**.  
+Para el primero corremos `find / -type f -perm -4000 2>/dev/null | xargs ls -l`.  
+Esto no nos devuelve ninguno relevante.  
 
-Ahora desde este usuario volvemos a correr `sudo -l` y vemos `(ruben) NOPASSWD: /usr/sbin/debugfs`. Volviendo a hacer **Explotación Sudo** podemos converirnos ahora en ruber. Vamos a la GTFOBins nuevamentne y buscamos `debugfs` filtrando por `sudo`.  
+Entonces, probamos `sudo -l`:  
+`(rafa) NOPASSWD: /usr/bin/find`  
+
+> Esto significa que podemos correr `sudo` con `find` como `rafa` y sin password.  
+
+Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Terminamos corriendo `sudo -u rafa find . -exec /bin/bash \; -quit` y logramos hacer **Movimiento Lateral** al usuario `rafa`.  
+
+Ahora desde este nuevo usuario, volvemos a ejecutar `sudo -l` y nos devuelve:  
+`(ruben) NOPASSWD: /usr/sbin/debugfs`  
+
+> Podemoos lanzar `debugfs` con Privilegios Elevados como el usuario `ruben` y sin contraseña.  
+
+Debemos a hacer **Explotación Sudo** devuelta para poder hacer **Movimiento Lateral** hacia `ruben`. Vamos a la *GTFOBins* nuevamente y buscamos `debugfs` filtrando por `sudo`.  
 
 Terminamos lanzando `sudo -u ruben /usr/sbin/debugfs`, nos sale un prompt, le damos a `!/bin/bash` y ya somos `ruben`.  
 
-Ahora, nuevamente ejecutamos vemos los Privilegios Sudo con `sudo -l` y nos devuelve `(ALL) NOPASSWD: /bin/bash /opt/penguin.sh`. Significa que podemos lanzar `sudo` sin contraseña corriendo el script con /bin/bash.  
+Ahora,  otra vez, chequeamos los **Privilegios Sudo** con `sudo -l` y nos devuelve:  
+`(ALL) NOPASSWD: /bin/bash /opt/penguin.sh`
 
-Entonces, siguiente paso, es saber qué hace el script. Lo averiguamos con `cat`. Vemos este código:  
+> Podemos lanzar dicho script como root  
+
+Entonces, siguiente paso, es saber qué hace el script para intentar explotarlo. Lo averiguamos con `cat /opt/penguin.sh`. Vemos el código:  
 
 ```
 #!/bin/bash
@@ -130,11 +145,13 @@ else
 fi
 ```
 
-Significa que el script espera una entrada de texto del usuario en crudo, compara si es igual a al entero 42; si lo es devuelve "Correct", si no, "Wrong".  Entonces, en este punto, hay que estar pensando en que la solución puede estar en una **Inyección de Comandos por Expansión de Shell**. Significa que puedo pasarle un comando del sistema que pueda permitirme **Elevar Privilegios**.  
+> El script espera una entrada de texto en crudo (no interpreta los caracteres de escape como *\n*, etc), la parsea a entero comparándola con *42*. Si es igual devuelve "Correct", si no, "Wrong".  
 
-Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh` me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42, por ejemplo.  
+Entonces, en este punto, hay que estar pensando en que la solución podría estar en una **Inyección de Comandos por Expansión de Shell**. Significa que puedo pasarle un comando del sistema que pueda permitirme **Elevar Privilegios**.  
 
-> El `Bloque IF` intentar parsear la entrada a entero para poder compararla con 42. En ese proceso, al querer acceder al valor del índice 0 del array, ejecuta la **Expansión de Comandos $(...)**, por lo que la orden maliciosa termina, efectivamente, corriendo con privilegios de root. Esto, entonces, concluye dando el **Permiso SUID** a */bin/bash*, lo cual es muy peligroso.  
+Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh`, me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42, por ejemplo.  
+
+> El `Bloque IF` intenta parsear la entrada a entero para poder compararla con 42 como dijimos. En este proceso, al querer acceder al valor del índice 0 del array, ejecuta la **Expansión de Comandos $(...)**. La orden maliciosa termina, efectivamente, corriendo con privilegios de root. Entonces, esto concluye dándole el **Permiso SUID** a */bin/bash*, lo cual es extremadamente peligroso.  
 
 >  Como el Array ingresado se termina parseando a 0 en el bloque condicional de `if`, puesto que el primer dígito es un caracter, el +42 tiene la función de no dar errores y el script se ejecute normalmente (no hace falta, es un adorno).
 
