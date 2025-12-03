@@ -90,6 +90,10 @@ Primero vemos las herramientas instaladas en el sistema para ver con qué podemo
 
 Una vez lograda la conexión, tenemos mucha más funcionalidad.  
 
+Lanzamos `whoami` y somos `www-data`.  
+
+#### FASE POST-EXPLOTACIÓN: Elevar Privilegios
+
 Ahora sí, es turno de Enumerar Usuarios. Lo hacemos de la siguientes maneras:  
 
 * cat /etc/passwd
@@ -101,9 +105,41 @@ Conseguimos 2 usuarios relevantes:
 
 Ambos usan /bin/bash.  
 
-Bien, lo segundo que debemos hacer es Buscar Binarios SUID y Privilegios Sudo. El primero lo conseguimos corriendo `find / -type f -perm -4000 2>/dev/null | xargs ls -l`. Esto no nos da ninguno que se aprecie, entonces probamos el siguiente con `sudo -l` y nos devuelve: `(rafa) NOPASSWD: /usr/bin/find`. Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Encontramos
+Bien, lo segundo que debemos hacer es Buscar Binarios SUID y Privilegios Sudo. El primero lo conseguimos corriendo `find / -type f -perm -4000 2>/dev/null | xargs ls -l`. Esto no nos da ninguno que se aprecie.  
+Entonces probamos el siguiente con `sudo -l`. Nos devuelve:  
+`(rafa) NOPASSWD: /usr/bin/find`.  
+Vamos a [GTFOBins](https://gtfobins.github.io/) y buscamos `find` filtrando por `sudo`. Encontramos que correiendo `sudo -u rafa find . -exec /bin/bash \; -quit` hacemos **Movimiento Lateral** al usuario `rafa`. Lo hacemos y ya somos `rafa`.  
+
+Ahora desde este usuario volvemos a correr `sudo -l` y vemos `(ruben) NOPASSWD: /usr/sbin/debugfs`. Volviendo a hacer **Explotación Sudo** podemos converirnos ahora en ruber. Vamos a la GTFOBins nuevamentne y buscamos `debugfs` filtrando por `sudo`.  
+
+Terminamos lanzando `sudo -u ruben /usr/sbin/debugfs`, nos sale un prompt, le damos a `!/bin/bash` y ya somos `ruben`.  
+
+Ahora, nuevamente ejecutamos vemos los Privilegios Sudo con `sudo -l` y nos devuelve `(ALL) NOPASSWD: /bin/bash /opt/penguin.sh`. Significa que podemos lanzar `sudo` sin contraseña corriendo el script con /bin/bash.  
+
+Entonces, siguiente paso, es saber qué hace el script. Lo averiguamos con `cat`. Vemos este código:  
+
+```
+#!/bin/bash
+read -rp "Enter guess: " num
+
+if [[ $num -eq 42 ]]
+then
+  echo "Correct"
+else
+  echo "Wrong"
+fi
+```
+
+Significa que el script espera una entrada de texto del usuario en crudo, compara si es igual a al entero 42; si lo es devuelve "Correct", si no, "Wrong".  Entonces, en este punto, hay que estar pensando en que la solución puede estar en una **Inyección de Comandos por Expansión de Shell**. Significa que puedo pasarle un comando del sistema que pueda permitirme **Elevar Privilegios**.  
+
+Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh` me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42, por ejemplo.  
+
+> El `Bloque IF` intentar parsear la entrada a entero para poder compararla con 42. En ese proceso, al querer acceder al valor del índice 0 del array, ejecuta la **Expansión de Comandos $(...)**, por lo que la orden maliciosa termina, efectivamente, corriendo con privilegios de root. Esto, entonces, concluye dando el **Permiso SUID** a */bin/bash*, lo cual es muy peligroso.  
+
+>  Como el Array ingresado se termina parseando a 0 en el bloque condicional de `if`, puesto que el primer dígito es un caracter, el +42 tiene la función de no dar errores y el script se ejecute normalmente (no hace falta, es un adorno).
+
+Ahora hacemos `whoami` y somos `root`. Eso es todo.
 
 
-#### FASE POST-EXPLOTACIÓN: Elevar Privilegios
 
 #### MITIGACIONES:  
