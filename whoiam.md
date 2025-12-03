@@ -1,6 +1,6 @@
 # WHOIAM
 
-#### Dificultad: Fácil
+##### Dificultad: Fácil
 
 ___
 
@@ -8,20 +8,20 @@ ___
 
 1. **Escaneo**:
 
-Usaremos `nmap -n -v --open -sV -sC -Pm -oN escaneo <IP>`.  
+Usaremos `nmap -n -v --open -sV -sC -Pn -oN escaneo <IP>`.  
 
 Obtenemos:  
 * el puerto 80 está abierto
 * la versión es Apache 2.4.58
 * el sistema objetivo es un Ubuntu
 
-Ahora, procedemos con `whatweb <IP>` para más **Footprinting Web**. Vemos que se trata de un *WordPress 6.8.3* y que usa la librería *JQuery 3.7.1*. Podría ser de utilidad más adelante.  
+Ahora, procedemos con `whatweb <IP>` para más **Footprinting Web**. Vemos que la webapp utiliza *WordPress 6.8.3* y la librería *JQuery 3.7.1*. Podría ser de utilidad más adelante.  
 
 2. **Enumeración Web**:  
 
 2.1. Empezamos con los **Directorios**. Por ejemplo:  
 
-`wfuzz -c --hc 404 -t 200 -z file,<diccionario> -R 3 -u "http://<IP>/FUZZ"`  
+`wfuzz -c --hc 404 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://<IP>/FUZZ"`
 
 Encontramos:  
 
