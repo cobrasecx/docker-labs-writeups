@@ -172,7 +172,7 @@ Entonces, en este punto, hay que estar pensando en que la solución podría yace
 
 Por lo tanto, corro el script con `sudo -u root /bin/bash /opt/penguin.sh`, me lanza el prompt y le mando `a[$(chmod u+s /bin/bash)]+42`, por ejemplo.  
 
-> Al querer interpretar el *Array* como un entero, ejecuta la **Expansión de Comandos $(...)** antes de delvolver *0* (por hallar el caracter *'a'* al inicio)y compararse con *42*.  
+> Al querer interpretar el *Array* como un entero en el *Bloque If*, ejecuta la **Expansión de Comandos $(...)** antes de delvolver *0* (por hallar el caracter *'a'* al inicio) y compararse con *42*.  
 
 > La orden maliciosa termina corriendo con Privilegios Elevados, dándole el **Permiso SUID** a */bin/bash*, lo cual es extremadamente peligroso.  
 
@@ -182,3 +182,9 @@ Ahora corremos `bash -p`, `whoami` y verificamos que somos `root`. Eso es todo.
 
 
 #### MITIGACIONES:  
+* Tener el sistema siempre actualizado
+* Sanear las entradas en los scripts
+* Seguir una política de *Zero Trust*
+* Cuidar los permisos que se otorgan a los usuarios (sobre todo los SUIDs)
+* No dejar las contraseñas en ficheros, y menos en texto claro
+* Actualizar siempre las apps (con sus plugins, temas, etc.)
