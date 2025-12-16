@@ -2,11 +2,13 @@
 
 > Dificultad: Fácil
 
+___
+
 #### FASE RECONOCIMIENTO
-* **Escaneo**:
-	- _Objetivo_:
-		- `nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]`
-			PORT   STATE SERVICE VERSION                                                      
+1. **Escaneo**:
+	* _Objetivo_:
+```
+ap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]			PORT   STATE SERVICE VERSION                                                      
 			22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 (Ubuntu Linux; protocol 2.0)
 			| ssh-hostkey:                                                                    
 			|   3072 0d:09:9d:0f:dc:43:54:cd:39:a9:e2:d6:81:74:40:e8 (RSA)                    
@@ -20,7 +22,8 @@
 			MAC Address: CE:BF:D6:20:93:90 (Unknown)                                          
 			Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel                           
 
-	- _Web_:
+	*```
+ _Web_:
 		- `whatweb [IP]`
 			- http://172.18.0.3 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[172.18.0.3], Title[The Walking Dead - CTF]                      
 
@@ -29,9 +32,9 @@
 			+ /hidden/: Directory indexing found.                      
 			+ /hidden/: This might be interesting.                     
 
-- **Enumeración**:
-	- _Web_:
-		- Directorios
+2. **Enumeración**:
+	* _Web_:
+		* Directorios:
 			- `wfuzz -c --hc 404,403 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-large-directories-lowercase.txt -R 3 -u "http://172.18.0.3/FUZZ"`
 				- /hidden/	301				
 				
@@ -52,7 +55,7 @@
 		    * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-20000.txt -H "Host. FUZZ.[dominio]" -u "http://[dominio|IP]"`
 						
 				
-* **Busqueda de Vulnerabilidades:**
+3. **Busqueda de Vulnerabilidades:**
     * _Descargar Lógica PHPs_:
 		* `curl -O http://[IP]/hidden/.shell.php`   X	
 		
