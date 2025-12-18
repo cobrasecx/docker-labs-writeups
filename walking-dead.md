@@ -76,7 +76,7 @@ Quizás podamos entender qué hace el script (aunque pese 0 :S).
 
 Comprobamos que efectivamente no hay nada.
 
-> Qué el script PHP no pese nada no significa que no sea relevante, puesto que puede importar la lógica de otro. Es un **_potencial Vector de Ataque_**.
+> Que el script PHP no pese nada no significa que no sea relevante, puesto que puede importar la lógica desde otro. Es un _potencial Vector de Explotación_.
 
 ###### 3.2 _Parámetros URL_:
 Primero buscamos los más comunes:
@@ -95,7 +95,7 @@ Nada de LFIs.
 ###### 3.4 Otros Parámetros:
 * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-medium-words.txt -u "http://[IP]/hidden/.shell.php?FUZZ=id"`
 
-> Encuentra a _cmd__
+> Encuentra a **_cmd_**
 
 Haciendo distintas pruebas en `/hidden/.shell.php?cmd=<comandos-os>`, vemos que podemos **Inyectar Comandos del Sistema** a través del mismo. Este es nuestro camino.
 
