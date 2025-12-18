@@ -140,16 +140,15 @@ Ahora que ya tenemos acceso al sistema en un entorno más controlado y funcional
         * wwdata
         * www-data
 
-Nuestro usuario (www-data) parece tener un script que podría ser explotable: . Vamos a nuestro /home con 
-* cd /home/www-data  2025 hijack.py
+Nuestro usuario (www-data) parece tener un script que podría ser explotable: `/home/www-data/hijack.py`. Hacemos:
 
 ```
-cat hijack.py
--e #!/usr/bin/env python3                                                                      │
-import os                                                                                      │
-import pty                                                                                     │
-os.system("/usr/local/bin/wwwdata_vuln")                                                       │
-pty.spawn("/bin/bash") 
+cat /home/www-data/hijack.py
+>>-e #!/usr/bin/env python3                                                                      │
+>>import os                                                                                      │
+>>import pty                                                                                     │
+>>os.system("/usr/local/bin/wwwdata_vuln")                                                       │
+>>pty.spawn("/bin/bash") 
 ```
 
 ```
@@ -157,13 +156,14 @@ cat /usr/local/bin/wwwdata_vuln
 -e #!/bin/bash                 
 /bin/bash                      
 ```
-Viendo a simple vista, nos damos cuenta que en realidad este no es el camino. Debemos ir por otro lado.
 
-**Buscar Binarios SUID:**
-Una de las primera cosas que hay que hacer para probar **Elevar Privilegios** es hallar estos binarios:
+Haciendo varios intentos, nos damos cuenta que en realidad este no es el camino, son distracciones, por lo cual debemos ir por otro lado.
 
-* find / -type f -perm -4000 2>/dev/null
-	/usr/lib/openssh/ssh-keysign               
+Hacemos una **Búsqueda de Binarios SUID:**
+Una de las primera cosas que hay probar **Elevar Privilegios** es hallar estos binarios:
+
+```
+find / -type f -perm -4000 2>/dev/nullusr/lib/openssh/ssh-keysign               
 	/usr/lib/dbus-1.0/dbus-daemon-launch-helper
 	/usr/bin/man                               
 	/usr/bin/gpasswd                           
