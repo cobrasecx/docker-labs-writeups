@@ -11,19 +11,19 @@ ___
 ###### 1.1 del _Objetivo_:
 * `nmap -v -n -sV -sV --min-rate 5000 -Pn --open -oN escaneo [IP]`
 
-> PORT   STATE SERVICE VERSION                                                      
-> 22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 (Ubuntu Linux; protocol 2.0)
->> | ssh-hostkey:                                                                    
->> |   3072 0d:09:9d:0f:dc:43:54:cd:39:a9:e2:d6:81:74:40:e8 (RSA)                    
->> |   256 09:d0:f6:52:00:3f:21:51:19:b1:c6:7a:f4:ff:21:01 (ECDSA)                   
->> |_  256 19:e0:b3:72:bd:e9:1e:8d:4c:c4:fd:1f:da:3f:a5:cf (ED25519)                 
-> 80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))                               
->> |_http-server-header: Apache/2.4.41 (Ubuntu)                                      
->> |_http-title: The Walking Dead - CTF                                              
->> | http-methods:                                                                   
->> |_  Supported Methods: OPTIONS HEAD GET POST                                      
-> MAC Address: CE:BF:D6:20:93:90 (Unknown)                                          
-> Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel                           
+	> PORT   STATE SERVICE VERSION                                                      
+	> 22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 (Ubuntu Linux; protocol 2.0)
+	>> | ssh-hostkey:                                                                    
+	>> |   3072 0d:09:9d:0f:dc:43:54:cd:39:a9:e2:d6:81:74:40:e8 (RSA)                    
+	>> |   256 09:d0:f6:52:00:3f:21:51:19:b1:c6:7a:f4:ff:21:01 (ECDSA)                   
+	>> |_  256 19:e0:b3:72:bd:e9:1e:8d:4c:c4:fd:1f:da:3f:a5:cf (ED25519)                 
+	> 80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))                               
+	>> |_http-server-header: Apache/2.4.41 (Ubuntu)                                      
+	>> |_http-title: The Walking Dead - CTF                                              
+	>> | http-methods:                                                                   
+	>> |_  Supported Methods: OPTIONS HEAD GET POST                                      
+	> MAC Address: CE:BF:D6:20:93:90 (Unknown)                                          
+	> Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel                           
 
 
 ###### 1.2 de la _Web App_:
